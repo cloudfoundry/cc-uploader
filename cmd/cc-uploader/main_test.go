@@ -11,6 +11,7 @@ import (
 	"github.com/cloudfoundry-incubator/cc-uploader"
 	"github.com/cloudfoundry-incubator/runtime-schema/cc_messages"
 	"github.com/cloudfoundry/gunk/urljoiner"
+	"github.com/hashicorp/consul/api"
 	. "github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/config"
 	. "github.com/onsi/gomega"
@@ -49,21 +50,6 @@ var _ = Describe("CC Uploader", func() {
 		appGuid = "app-guid"
 	)
 
-	start := func(extras ...string) *gexec.Session {
-		args := append(
-			extras,
-			"-address", fmt.Sprintf("localhost:%d", port),
-			"-skipCertVerify",
-		)
-
-		session, err = gexec.Start(exec.Command(ccUploaderBinary, args...), GinkgoWriter, GinkgoWriter)
-		Expect(err).NotTo(HaveOccurred())
-
-		Eventually(session).Should(gbytes.Say("cc-uploader.ready"))
-
-		return session
-	}
-
 	dropletUploadRequest := func(appGuid string, body io.Reader, contentLength int) *http.Request {
 		ccUrl, err := url.Parse(fakeCC.Address())
 		Expect(err).NotTo(HaveOccurred())
@@ -95,6 +81,17 @@ var _ = Describe("CC Uploader", func() {
 		Expect(err).NotTo(HaveOccurred())
 		port = 8182 + config.GinkgoConfig.ParallelNode
 		address = fmt.Sprintf("http://localhost:%d", port)
+
+		args := []string{
+			"-consulCluster", consulRunner.URL(),
+			"-address", fmt.Sprintf("localhost:%d", port),
+			"-skipCertVerify",
+		}
+
+		session, err = gexec.Start(exec.Command(ccUploaderBinary, args...), GinkgoWriter, GinkgoWriter)
+		Expect(err).NotTo(HaveOccurred())
+
+		Eventually(session).Should(gbytes.Say("cc-uploader.ready"))
 	})
 
 	AfterEach(func() {
@@ -103,10 +100,6 @@ var _ = Describe("CC Uploader", func() {
 
 	Describe("uploading a file", func() {
 		var contentLength = 100
-
-		BeforeEach(func() {
-			session = start()
-		})
 
 		It("should upload the file...", func() {
 			emitter := NewEmitter(contentLength)
@@ -117,6 +110,33 @@ var _ = Describe("CC Uploader", func() {
 
 			Expect(resp.StatusCode).To(Equal(http.StatusCreated))
 			Expect(len(fakeCC.UploadedDroplets[appGuid])).To(Equal(contentLength))
+		})
+	})
+
+	Describe("Initialization", func() {
+		It("registers itself with consul", func() {
+			services, err := consulRunner.NewConsulClient().Agent().Services()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(services).Should(HaveKeyWithValue("cc-uploader",
+				&api.AgentService{
+					Service: "cc-uploader",
+					ID:      "cc-uploader",
+					Port:    port,
+				}))
+		})
+
+		It("registers a TTL healthcheck", func() {
+			checks, err := consulRunner.NewConsulClient().Agent().Checks()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(checks).Should(HaveKeyWithValue("service:cc-uploader",
+				&api.AgentCheck{
+					Node:        "0",
+					CheckID:     "service:cc-uploader",
+					Name:        "Service 'cc-uploader' check",
+					Status:      "passing",
+					ServiceID:   "cc-uploader",
+					ServiceName: "cc-uploader",
+				}))
 		})
 	})
 })
