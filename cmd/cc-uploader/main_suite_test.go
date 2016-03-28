@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/cloudfoundry-incubator/cc-uploader/fake_cc"
 	"github.com/cloudfoundry-incubator/consuladapter/consulrunner"
-	"github.com/cloudfoundry-incubator/inigo/fake_cc"
 	. "github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/config"
 	. "github.com/onsi/gomega"
