@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/cloudfoundry-incubator/cc-uploader/fake_cc"
+	"github.com/cloudfoundry-incubator/cc-uploader/ccclient/fake_cc"
 	"github.com/cloudfoundry-incubator/consuladapter/consulrunner"
 	. "github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/config"
