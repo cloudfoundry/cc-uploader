@@ -7,7 +7,7 @@ import (
 	"code.cloudfoundry.org/cc-uploader/ccclient"
 	"code.cloudfoundry.org/cc-uploader/handlers/upload_build_artifacts"
 	"code.cloudfoundry.org/cc-uploader/handlers/upload_droplet"
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/lager"
 	"github.com/tedsuo/rata"
 )
 

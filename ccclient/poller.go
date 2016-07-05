@@ -7,7 +7,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/lager"
 )
 
 const (

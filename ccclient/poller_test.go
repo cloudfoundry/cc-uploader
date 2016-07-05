@@ -11,7 +11,7 @@ import (
 
 	"code.cloudfoundry.org/cc-uploader/ccclient"
 	"code.cloudfoundry.org/cc-uploader/ccclient/test_helpers"
-	"github.com/pivotal-golang/lager/lagertest"
+	"code.cloudfoundry.org/lager/lagertest"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

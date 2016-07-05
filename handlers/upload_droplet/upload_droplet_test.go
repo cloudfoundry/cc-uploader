@@ -12,10 +12,10 @@ import (
 	"code.cloudfoundry.org/cc-uploader/ccclient/fake_ccclient"
 	"code.cloudfoundry.org/cc-uploader/handlers/test_helpers"
 	"code.cloudfoundry.org/cc-uploader/handlers/upload_droplet"
-	"github.com/cloudfoundry-incubator/runtime-schema/cc_messages"
+	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/runtimeschema/cc_messages"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-golang/lager"
 )
 
 var _ = Describe("UploadDroplet", func() {

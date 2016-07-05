@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/cc-uploader"
-	"github.com/cloudfoundry-incubator/runtime-schema/cc_messages"
+	"code.cloudfoundry.org/runtimeschema/cc_messages"
 	"github.com/cloudfoundry/gunk/urljoiner"
 	"github.com/hashicorp/consul/api"
 	. "github.com/onsi/ginkgo"

@@ -8,7 +8,7 @@ import (
 	"regexp"
 	"sync"
 
-	"github.com/cloudfoundry-incubator/runtime-schema/cc_messages"
+	"code.cloudfoundry.org/runtimeschema/cc_messages"
 	"github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"

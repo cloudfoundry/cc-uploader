@@ -12,9 +12,9 @@ import (
 
 	"code.cloudfoundry.org/cc-uploader/ccclient"
 	"code.cloudfoundry.org/cc-uploader/handlers"
-	"github.com/cloudfoundry-incubator/runtime-schema/cc_messages"
+	"code.cloudfoundry.org/lager/lagertest"
+	"code.cloudfoundry.org/runtimeschema/cc_messages"
 	"github.com/cloudfoundry/gunk/urljoiner"
-	"github.com/pivotal-golang/lager/lagertest"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

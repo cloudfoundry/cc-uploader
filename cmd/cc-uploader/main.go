@@ -12,15 +12,15 @@ import (
 
 	"code.cloudfoundry.org/cc-uploader/ccclient"
 	"code.cloudfoundry.org/cc-uploader/handlers"
-	"github.com/cloudfoundry-incubator/cf-debug-server"
-	"github.com/cloudfoundry-incubator/cf-lager"
-	"github.com/cloudfoundry-incubator/cf_http"
-	"github.com/cloudfoundry-incubator/consuladapter"
-	"github.com/cloudfoundry-incubator/locket"
+	"code.cloudfoundry.org/cfhttp"
+	"code.cloudfoundry.org/cflager"
+	"code.cloudfoundry.org/clock"
+	"code.cloudfoundry.org/consuladapter"
+	"code.cloudfoundry.org/debugserver"
+	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/locket"
 	"github.com/cloudfoundry/dropsonde"
 	"github.com/hashicorp/consul/api"
-	"github.com/pivotal-golang/clock"
-	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/http_server"
@@ -72,13 +72,13 @@ const (
 
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
-	cf_debug_server.AddFlags(flag.CommandLine)
-	cf_lager.AddFlags(flag.CommandLine)
+	debugserver.AddFlags(flag.CommandLine)
+	cflager.AddFlags(flag.CommandLine)
 	flag.Parse()
 
-	cf_http.Initialize(*communicationTimeout)
+	cfhttp.Initialize(*communicationTimeout)
 
-	logger, reconfigurableSink := cf_lager.New("cc-uploader")
+	logger, reconfigurableSink := cflager.New("cc-uploader")
 
 	initializeDropsonde(logger)
 	consulClient, err := consuladapter.NewClientFromUrl(*consulCluster)
@@ -93,9 +93,9 @@ func main() {
 		{"registration-runner", registrationRunner},
 	}
 
-	if dbgAddr := cf_debug_server.DebugAddress(flag.CommandLine); dbgAddr != "" {
+	if dbgAddr := debugserver.DebugAddress(flag.CommandLine); dbgAddr != "" {
 		members = append(grouper.Members{
-			{"debug-server", cf_debug_server.Runner(dbgAddr, reconfigurableSink)},
+			{"debug-server", debugserver.Runner(dbgAddr, reconfigurableSink)},
 		}, members...)
 	}
 
@@ -134,7 +134,7 @@ func initializeServer(logger lager.Logger) ifrit.Runner {
 		TLSHandshakeTimeout: ccUploadTLSHandshakeTimeout,
 	}
 
-	pollerHttpClient := cf_http.NewClient()
+	pollerHttpClient := cfhttp.NewClient()
 	pollerHttpClient.Transport = transport
 
 	uploader := ccclient.NewUploader(logger, &http.Client{Transport: transport})

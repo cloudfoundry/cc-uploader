@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/cc-uploader/ccclient"
-	"github.com/cloudfoundry-incubator/runtime-schema/cc_messages"
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/runtimeschema/cc_messages"
 )
 
 func New(uploader ccclient.Uploader, poller ccclient.Poller, logger lager.Logger) http.Handler {

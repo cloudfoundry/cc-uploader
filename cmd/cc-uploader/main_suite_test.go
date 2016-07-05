@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"code.cloudfoundry.org/cc-uploader/ccclient/fake_cc"
-	"github.com/cloudfoundry-incubator/consuladapter/consulrunner"
+	"code.cloudfoundry.org/consuladapter/consulrunner"
 	. "github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/config"
 	. "github.com/onsi/gomega"
