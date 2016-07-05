@@ -3,10 +3,10 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/cloudfoundry-incubator/cc-uploader"
-	"github.com/cloudfoundry-incubator/cc-uploader/ccclient"
-	"github.com/cloudfoundry-incubator/cc-uploader/handlers/upload_build_artifacts"
-	"github.com/cloudfoundry-incubator/cc-uploader/handlers/upload_droplet"
+	"code.cloudfoundry.org/cc-uploader"
+	"code.cloudfoundry.org/cc-uploader/ccclient"
+	"code.cloudfoundry.org/cc-uploader/handlers/upload_build_artifacts"
+	"code.cloudfoundry.org/cc-uploader/handlers/upload_droplet"
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/rata"
 )

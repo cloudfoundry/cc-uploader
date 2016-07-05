@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/cloudfoundry-incubator/cc-uploader/ccclient"
+	"code.cloudfoundry.org/cc-uploader/ccclient"
 	"github.com/cloudfoundry-incubator/runtime-schema/cc_messages"
 	"github.com/pivotal-golang/lager"
 )

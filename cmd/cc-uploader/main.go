@@ -10,8 +10,8 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/cloudfoundry-incubator/cc-uploader/ccclient"
-	"github.com/cloudfoundry-incubator/cc-uploader/handlers"
+	"code.cloudfoundry.org/cc-uploader/ccclient"
+	"code.cloudfoundry.org/cc-uploader/handlers"
 	"github.com/cloudfoundry-incubator/cf-debug-server"
 	"github.com/cloudfoundry-incubator/cf-lager"
 	"github.com/cloudfoundry-incubator/cf_http"

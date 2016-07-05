@@ -9,8 +9,8 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/cloudfoundry-incubator/cc-uploader/ccclient"
-	"github.com/cloudfoundry-incubator/cc-uploader/ccclient/test_helpers"
+	"code.cloudfoundry.org/cc-uploader/ccclient"
+	"code.cloudfoundry.org/cc-uploader/ccclient/test_helpers"
 	"github.com/pivotal-golang/lager/lagertest"
 
 	. "github.com/onsi/ginkgo"

@@ -8,7 +8,7 @@ import (
 	"os/exec"
 	"time"
 
-	"github.com/cloudfoundry-incubator/cc-uploader"
+	"code.cloudfoundry.org/cc-uploader"
 	"github.com/cloudfoundry-incubator/runtime-schema/cc_messages"
 	"github.com/cloudfoundry/gunk/urljoiner"
 	"github.com/hashicorp/consul/api"

@@ -9,9 +9,9 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/cloudfoundry-incubator/cc-uploader/ccclient/fake_ccclient"
-	"github.com/cloudfoundry-incubator/cc-uploader/handlers/test_helpers"
-	"github.com/cloudfoundry-incubator/cc-uploader/handlers/upload_build_artifacts"
+	"code.cloudfoundry.org/cc-uploader/ccclient/fake_ccclient"
+	"code.cloudfoundry.org/cc-uploader/handlers/test_helpers"
+	"code.cloudfoundry.org/cc-uploader/handlers/upload_build_artifacts"
 	"github.com/cloudfoundry-incubator/runtime-schema/cc_messages"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

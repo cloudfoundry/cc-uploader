@@ -10,8 +10,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/cloudfoundry-incubator/cc-uploader/ccclient"
-	"github.com/cloudfoundry-incubator/cc-uploader/handlers"
+	"code.cloudfoundry.org/cc-uploader/ccclient"
+	"code.cloudfoundry.org/cc-uploader/handlers"
 	"github.com/cloudfoundry-incubator/runtime-schema/cc_messages"
 	"github.com/cloudfoundry/gunk/urljoiner"
 	"github.com/pivotal-golang/lager/lagertest"

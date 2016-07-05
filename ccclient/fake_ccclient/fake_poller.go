@@ -6,7 +6,7 @@ import (
 	"net/url"
 	"sync"
 
-	"github.com/cloudfoundry-incubator/cc-uploader/ccclient"
+	"code.cloudfoundry.org/cc-uploader/ccclient"
 )
 
 type FakePoller struct {

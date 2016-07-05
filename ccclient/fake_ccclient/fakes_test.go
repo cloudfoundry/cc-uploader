@@ -1,8 +1,8 @@
 package fake_ccclient_test
 
 import (
-	"github.com/cloudfoundry-incubator/cc-uploader/ccclient"
-	"github.com/cloudfoundry-incubator/cc-uploader/ccclient/fake_ccclient"
+	"code.cloudfoundry.org/cc-uploader/ccclient"
+	"code.cloudfoundry.org/cc-uploader/ccclient/fake_ccclient"
 
 	. "github.com/onsi/ginkgo"
 )

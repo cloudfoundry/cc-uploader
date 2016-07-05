@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/cloudfoundry-incubator/cc-uploader/ccclient/fake_cc"
+	"code.cloudfoundry.org/cc-uploader/ccclient/fake_cc"
 	"github.com/cloudfoundry-incubator/consuladapter/consulrunner"
 	. "github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/config"
@@ -26,7 +26,7 @@ func TestCCUploader(t *testing.T) {
 }
 
 var _ = SynchronizedBeforeSuite(func() []byte {
-	ccUploaderPath, err := gexec.Build("github.com/cloudfoundry-incubator/cc-uploader/cmd/cc-uploader")
+	ccUploaderPath, err := gexec.Build("code.cloudfoundry.org/cc-uploader/cmd/cc-uploader")
 	Expect(err).NotTo(HaveOccurred())
 	return []byte(ccUploaderPath)
 }, func(ccUploaderPath []byte) {
