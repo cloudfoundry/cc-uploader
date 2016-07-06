@@ -1,6 +1,8 @@
 CC Uploader
 ===========
 
+**Note**: This repository should be imported as `code.cloudfoundry.org/cc-uploader`.
+
 CC Bridge component to enable Diego to upload files to Cloud Controller's blobstore
 
 ## Uploading Droplets & Build Artifacts
