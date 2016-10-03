@@ -57,6 +57,12 @@ var dropsondePort = flag.Int(
 	"port the local metron agent is listening on",
 )
 
+var consulTTL = flag.String(
+	"consulTTL",
+	"3",
+	"TTL value for consul registration in seconds",
+)
+
 var consulCluster = flag.String(
 	"consulCluster",
 	"",
@@ -163,7 +169,7 @@ func initializeRegistrationRunner(logger lager.Logger, consulClient consuladapte
 		Name: "cc-uploader",
 		Port: portNum,
 		Check: &api.AgentServiceCheck{
-			TTL: "3s",
+			TTL: *consulTTL + "s",
 		},
 	}
 
