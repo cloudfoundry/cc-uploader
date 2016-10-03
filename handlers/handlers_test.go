@@ -14,7 +14,7 @@ import (
 	"code.cloudfoundry.org/cc-uploader/handlers"
 	"code.cloudfoundry.org/lager/lagertest"
 	"code.cloudfoundry.org/runtimeschema/cc_messages"
-	"github.com/cloudfoundry/gunk/urljoiner"
+	"code.cloudfoundry.org/urljoiner"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

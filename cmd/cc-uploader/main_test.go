@@ -10,7 +10,7 @@ import (
 
 	"code.cloudfoundry.org/cc-uploader"
 	"code.cloudfoundry.org/runtimeschema/cc_messages"
-	"github.com/cloudfoundry/gunk/urljoiner"
+	"code.cloudfoundry.org/urljoiner"
 	"github.com/hashicorp/consul/api"
 	. "github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/config"
