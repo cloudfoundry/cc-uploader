@@ -11,13 +11,14 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/cc-uploader/ccclient"
+	"code.cloudfoundry.org/cc-uploader/config"
 	"code.cloudfoundry.org/cc-uploader/handlers"
 	"code.cloudfoundry.org/cfhttp"
-	"code.cloudfoundry.org/cflager"
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/consuladapter"
 	"code.cloudfoundry.org/debugserver"
 	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagerflags"
 	"code.cloudfoundry.org/locket"
 	"github.com/cloudfoundry/dropsonde"
 	"github.com/hashicorp/consul/api"
@@ -27,75 +28,51 @@ import (
 	"github.com/tedsuo/ifrit/sigmon"
 )
 
-var serverAddress = flag.String(
-	"address",
-	"0.0.0.0:9090",
-	"Specifies the address to bind to",
-)
-
-var skipCertVerify = flag.Bool(
-	"skipCertVerify",
-	false,
-	"Skip SSL certificate verification",
-)
-
-var ccJobPollingInterval = flag.Duration(
-	"ccJobPollingInterval",
-	1*time.Second,
-	"the interval between job polling requests",
-)
-
-var communicationTimeout = flag.Duration(
-	"communicationTimeout",
-	30*time.Second,
-	"Timeout applied to all HTTP requests.",
-)
-
-var dropsondePort = flag.Int(
-	"dropsondePort",
-	3457,
-	"port the local metron agent is listening on",
-)
-
-var consulCluster = flag.String(
-	"consulCluster",
+var configPath = flag.String(
+	"configPath",
 	"",
-	"Consul Agent URL",
+	"path to config",
 )
+
+var uploaderConfig config.UploaderConfig
 
 const (
 	ccUploadDialTimeout         = 10 * time.Second
 	ccUploadKeepAlive           = 30 * time.Second
 	ccUploadTLSHandshakeTimeout = 10 * time.Second
 	dropsondeOrigin             = "cc_uploader"
+	communicationTimeout        = 30 * time.Second
 )
 
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
-	debugserver.AddFlags(flag.CommandLine)
-	cflager.AddFlags(flag.CommandLine)
 	flag.Parse()
 
-	cfhttp.Initialize(*communicationTimeout)
+	uploaderConfig, err := config.NewUploaderConfig(*configPath)
+	if err != nil {
+		panic(err.Error())
+	}
 
-	logger, reconfigurableSink := cflager.New("cc-uploader")
+	logger, reconfigurableSink := lagerflags.NewFromConfig("cc-uploader", uploaderConfig.LagerConfig)
+
+	cfhttp.Initialize(communicationTimeout)
 
 	initializeDropsonde(logger)
-	consulClient, err := consuladapter.NewClientFromUrl(*consulCluster)
+	consulClient, err := consuladapter.NewClientFromUrl(uploaderConfig.ConsulCluster)
 	if err != nil {
 		logger.Fatal("new-client-failed", err)
 	}
 
-	registrationRunner := initializeRegistrationRunner(logger, consulClient, *serverAddress, clock.NewClock())
+	registrationRunner := initializeRegistrationRunner(logger, consulClient, uploaderConfig.ListenAddress, clock.NewClock())
 
 	members := grouper.Members{
 		{"cc-uploader", initializeServer(logger)},
 		{"registration-runner", registrationRunner},
 	}
 
-	if dbgAddr := debugserver.DebugAddress(flag.CommandLine); dbgAddr != "" {
+	if uploaderConfig.DebugServerConfig.DebugAddress != "" {
 		members = append(grouper.Members{
-			{"debug-server", debugserver.Runner(dbgAddr, reconfigurableSink)},
+			{"debug-server", debugserver.Runner(uploaderConfig.DebugServerConfig.DebugAddress, reconfigurableSink)},
 		}, members...)
 	}
 
@@ -114,7 +91,7 @@ func main() {
 }
 
 func initializeDropsonde(logger lager.Logger) {
-	dropsondeDestination := fmt.Sprint("localhost:", *dropsondePort)
+	dropsondeDestination := fmt.Sprint("localhost:", uploaderConfig.DropsondePort)
 	err := dropsonde.Initialize(dropsondeDestination, dropsondeOrigin)
 	if err != nil {
 		logger.Error("failed to initialize dropsonde: %v", err)
@@ -129,7 +106,7 @@ func initializeServer(logger lager.Logger) ifrit.Runner {
 			KeepAlive: ccUploadKeepAlive,
 		}).Dial,
 		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: *skipCertVerify,
+			InsecureSkipVerify: uploaderConfig.SkipCertVerify,
 		},
 		TLSHandshakeTimeout: ccUploadTLSHandshakeTimeout,
 	}
@@ -138,7 +115,7 @@ func initializeServer(logger lager.Logger) ifrit.Runner {
 	pollerHttpClient.Transport = transport
 
 	uploader := ccclient.NewUploader(logger, &http.Client{Transport: transport})
-	poller := ccclient.NewPoller(logger, pollerHttpClient, *ccJobPollingInterval)
+	poller := ccclient.NewPoller(logger, pollerHttpClient, time.Duration(uploaderConfig.CCJobPollingInterval))
 
 	ccUploaderHandler, err := handlers.New(uploader, poller, logger)
 	if err != nil {
@@ -146,7 +123,7 @@ func initializeServer(logger lager.Logger) ifrit.Runner {
 		os.Exit(1)
 	}
 
-	return http_server.New(*serverAddress, ccUploaderHandler)
+	return http_server.New(uploaderConfig.ListenAddress, ccUploaderHandler)
 }
 
 func initializeRegistrationRunner(logger lager.Logger, consulClient consuladapter.Client, listenAddress string, clock clock.Clock) ifrit.Runner {

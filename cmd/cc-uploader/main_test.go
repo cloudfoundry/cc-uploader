@@ -1,19 +1,22 @@
 package main_test
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
 	"os/exec"
 	"time"
 
 	"code.cloudfoundry.org/cc-uploader"
+	"code.cloudfoundry.org/cc-uploader/config"
 	"code.cloudfoundry.org/runtimeschema/cc_messages"
 	"code.cloudfoundry.org/urljoiner"
 	"github.com/hashicorp/consul/api"
 	. "github.com/onsi/ginkgo"
-	"github.com/onsi/ginkgo/config"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
@@ -43,11 +46,12 @@ func (emitter *ByteEmitter) Read(p []byte) (n int, err error) {
 
 var _ = Describe("CC Uploader", func() {
 	var (
-		port    int
-		address string
-		session *gexec.Session
-		err     error
-		appGuid = "app-guid"
+		port       int
+		address    string
+		session    *gexec.Session
+		err        error
+		configFile *os.File
+		appGuid    = "app-guid"
 	)
 
 	dropletUploadRequest := func(appGuid string, body io.Reader, contentLength int) *http.Request {
@@ -79,15 +83,24 @@ var _ = Describe("CC Uploader", func() {
 
 	BeforeEach(func() {
 		Expect(err).NotTo(HaveOccurred())
-		port = 8182 + config.GinkgoConfig.ParallelNode
+		port = 8182 + GinkgoParallelNode()
 		address = fmt.Sprintf("http://localhost:%d", port)
 
-		args := []string{
-			"-consulCluster", consulRunner.URL(),
-			"-address", fmt.Sprintf("localhost:%d", port),
-			"-skipCertVerify",
-		}
+		uploaderConfig := config.DefaultUploaderConfig()
+		uploaderConfig.ConsulCluster = consulRunner.URL()
+		uploaderConfig.ListenAddress = fmt.Sprintf("localhost:%d", port)
+		uploaderConfig.SkipCertVerify = true
 
+		configFile, err = ioutil.TempFile("", "uploader_config")
+		Expect(err).NotTo(HaveOccurred())
+		configJson, err := json.Marshal(uploaderConfig)
+		Expect(err).NotTo(HaveOccurred())
+		err = ioutil.WriteFile(configFile.Name(), configJson, 0644)
+		Expect(err).NotTo(HaveOccurred())
+
+		args := []string{
+			"-configPath", configFile.Name(),
+		}
 		session, err = gexec.Start(exec.Command(ccUploaderBinary, args...), GinkgoWriter, GinkgoWriter)
 		Expect(err).NotTo(HaveOccurred())
 
@@ -95,13 +108,14 @@ var _ = Describe("CC Uploader", func() {
 	})
 
 	AfterEach(func() {
+		os.Remove(configFile.Name())
 		session.Kill().Wait()
 	})
 
 	Describe("uploading a file", func() {
 		var contentLength = 100
 
-		It("should upload the file...", func() {
+		FIt("should upload the file...", func() {
 			emitter := NewEmitter(contentLength)
 			postRequest := dropletUploadRequest(appGuid, emitter, contentLength)
 			resp, err := http.DefaultClient.Do(postRequest)
