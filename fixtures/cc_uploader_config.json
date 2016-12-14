@@ -1,0 +1,13 @@
+{
+  "consul_cluster": "consul_cluster",
+  "debug_server_config": {
+    "debug_address": "debug_address"
+  },
+  "dropsonde_port": 12,
+  "lager_config": {
+    "log_level": "fatal"
+  },
+  "listen_addr": "listen_addr",
+  "skip_cert_verify": true,
+  "job_polling_interval": "5s"
+}
