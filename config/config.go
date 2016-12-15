@@ -35,12 +35,12 @@ func (d Duration) MarshalJSON() ([]byte, error) {
 
 type UploaderConfig struct {
 	ConsulCluster        string                        `json:"consul_cluster"`
-	DebugServerConfig    debugserver.DebugServerConfig `json:"debug_server_config"`
 	DropsondePort        int                           `json:"dropsonde_port"`
-	LagerConfig          lagerflags.LagerConfig        `json:"lager_config"`
 	ListenAddress        string                        `json:"listen_addr"`
 	SkipCertVerify       bool                          `json:"skip_cert_verify"`
 	CCJobPollingInterval Duration                      `json:"job_polling_interval"`
+	LagerConfig          lagerflags.LagerConfig        `json:"lager_config"`
+	DebugServerConfig    debugserver.DebugServerConfig `json:"debug_server_config"`
 }
 
 func DefaultUploaderConfig() UploaderConfig {
