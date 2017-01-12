@@ -138,7 +138,7 @@ func initializeRegistrationRunner(logger lager.Logger, consulClient consuladapte
 		Name: "cc-uploader",
 		Port: portNum,
 		Check: &api.AgentServiceCheck{
-			TTL: "3s",
+			TTL: "20s",
 		},
 	}
 
