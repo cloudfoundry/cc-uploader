@@ -16,7 +16,6 @@ var _ = Describe("Config", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(uploaderConfig.DropsondePort).To(Equal(3457))
-			Expect(uploaderConfig.SkipCertVerify).To(BeFalse())
 			Expect(uploaderConfig.LagerConfig.LogLevel).To(Equal("info"))
 			Expect(uploaderConfig.ListenAddress).To(Equal("0.0.0.0:9090"))
 			Expect(uploaderConfig.CCJobPollingInterval).To(Equal(Duration(1 * time.Second)))
@@ -27,12 +26,14 @@ var _ = Describe("Config", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(uploaderConfig.DropsondePort).To(Equal(12))
-			Expect(uploaderConfig.SkipCertVerify).To(BeTrue())
 			Expect(uploaderConfig.LagerConfig.LogLevel).To(Equal("fatal"))
 			Expect(uploaderConfig.ListenAddress).To(Equal("listen_addr"))
 			Expect(uploaderConfig.CCJobPollingInterval).To(Equal(Duration(5 * time.Second)))
 			Expect(uploaderConfig.ConsulCluster).To(Equal("consul_cluster"))
 			Expect(uploaderConfig.DebugServerConfig.DebugAddress).To(Equal("debug_address"))
+			Expect(uploaderConfig.CCClientCert).To(Equal("/path/to/server.cert"))
+			Expect(uploaderConfig.CCClientKey).To(Equal("/path/to/server.key"))
+			Expect(uploaderConfig.CCCACert).To(Equal("/path/to/server-ca.cert"))
 		})
 	})
 })

@@ -39,11 +39,6 @@ func (u *uploader) Upload(uploadURL *url.URL, filename string, r *http.Request, 
 
 	uploadReq.Header.Set(contentMD5Header, r.Header.Get(contentMD5Header))
 	uploadReq.URL = uploadURL
-	if uploadURL.User != nil {
-		if password, set := uploadURL.User.Password(); set {
-			uploadReq.SetBasicAuth(uploadURL.User.Username(), password)
-		}
-	}
 
 	var rsp *http.Response
 	var uploadErr error

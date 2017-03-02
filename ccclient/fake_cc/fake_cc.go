@@ -1,8 +1,11 @@
 package fake_cc
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
 	"regexp"
@@ -11,13 +14,10 @@ import (
 	"code.cloudfoundry.org/runtimeschema/cc_messages"
 	"github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/ghttp"
 	"github.com/tedsuo/ifrit/http_server"
 )
 
 const (
-	CC_USERNAME          = "bob"
-	CC_PASSWORD          = "password"
 	finishedResponseBody = `
         {
             "metadata":{
@@ -41,12 +41,14 @@ type FakeCC struct {
 	stagingResponseStatusCode    int
 	stagingResponseBody          string
 	lock                         *sync.RWMutex
+	ca_cert                      string
+	mtls_cert                    string
+	mtls_key                     string
 }
 
-func New(address string) *FakeCC {
+func New(address, ca_cert, mtls_cert, mtls_key string) *FakeCC {
 	return &FakeCC{
-		address: address,
-
+		address: 		      address,
 		UploadedDroplets:             map[string][]byte{},
 		UploadedBuildArtifactsCaches: map[string][]byte{},
 		stagingGuids:                 []string{},
@@ -54,11 +56,36 @@ func New(address string) *FakeCC {
 		stagingResponseStatusCode:    http.StatusOK,
 		stagingResponseBody:          "{}",
 		lock:                         new(sync.RWMutex),
+		ca_cert:                      ca_cert,
+		mtls_cert:                    mtls_cert,
+		mtls_key:                     mtls_key,
 	}
 }
 
 func (f *FakeCC) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
-	err := http_server.New(f.address, f).Run(signals, ready)
+	cert, err := tls.LoadX509KeyPair(f.mtls_cert, f.mtls_key)
+	if err != nil {
+		log.Fatalln("Unable to load cert", err)
+	}
+	caCert, err := ioutil.ReadFile(f.ca_cert)
+	if err != nil {
+		log.Fatal("Unable to open cert", err)
+	}
+
+	clientCertPool := x509.NewCertPool()
+	clientCertPool.AppendCertsFromPEM(caCert)
+	tlsConfig := &tls.Config{
+		InsecureSkipVerify: false,
+		Certificates:       []tls.Certificate{cert},
+		ClientAuth:         tls.RequireAndVerifyClientCert,
+		ClientCAs:          clientCertPool,
+		RootCAs:            clientCertPool,
+		CipherSuites: []uint16{
+			tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+		},
+	}
+	err = http_server.NewTLSServer(f.address, f, tlsConfig).Run(signals, ready)
 
 	f.Reset()
 
@@ -66,15 +93,7 @@ func (f *FakeCC) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 }
 
 func (f *FakeCC) Address() string {
-	return "http://" + f.address
-}
-
-func (f *FakeCC) Username() string {
-	return CC_USERNAME
-}
-
-func (f *FakeCC) Password() string {
-	return CC_PASSWORD
+	return "https://" + f.address
 }
 
 func (f *FakeCC) Reset() {
@@ -128,9 +147,6 @@ func (f *FakeCC) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (f *FakeCC) handleDropletUploadRequest(w http.ResponseWriter, r *http.Request) {
-	basicAuthVerifier := ghttp.VerifyBasicAuth(CC_USERNAME, CC_PASSWORD)
-	basicAuthVerifier(w, r)
-
 	key := getFileUploadKey(r)
 	file, _, err := r.FormFile(key)
 	Expect(err).NotTo(HaveOccurred())

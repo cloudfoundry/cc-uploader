@@ -37,17 +37,18 @@ type UploaderConfig struct {
 	ConsulCluster        string                        `json:"consul_cluster"`
 	DropsondePort        int                           `json:"dropsonde_port"`
 	ListenAddress        string                        `json:"listen_addr"`
-	SkipCertVerify       bool                          `json:"skip_cert_verify"`
 	CCJobPollingInterval Duration                      `json:"job_polling_interval"`
 	LagerConfig          lagerflags.LagerConfig        `json:"lager_config"`
 	DebugServerConfig    debugserver.DebugServerConfig `json:"debug_server_config"`
+	CCClientCert         string                        `json:"cc_client_cert"`
+	CCClientKey          string                        `json:"cc_client_key"`
+	CCCACert             string                        `json:"cc_ca_cert"`
 }
 
 func DefaultUploaderConfig() UploaderConfig {
 	return UploaderConfig{
 		DropsondePort:        3457,
 		LagerConfig:          lagerflags.DefaultLagerConfig(),
-		SkipCertVerify:       false,
 		ListenAddress:        "0.0.0.0:9090",
 		CCJobPollingInterval: Duration(1 * time.Second),
 	}

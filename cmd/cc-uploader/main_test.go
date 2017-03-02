@@ -57,7 +57,6 @@ var _ = Describe("CC Uploader", func() {
 	dropletUploadRequest := func(appGuid string, body io.Reader, contentLength int) *http.Request {
 		ccUrl, err := url.Parse(fakeCC.Address())
 		Expect(err).NotTo(HaveOccurred())
-		ccUrl.User = url.UserPassword(fakeCC.Username(), fakeCC.Password())
 		ccUrl.Path = urljoiner.Join("staging", "droplets", appGuid, "upload")
 		v := url.Values{"async": []string{"true"}}
 		ccUrl.RawQuery = v.Encode()
@@ -89,7 +88,9 @@ var _ = Describe("CC Uploader", func() {
 		uploaderConfig := config.DefaultUploaderConfig()
 		uploaderConfig.ConsulCluster = consulRunner.URL()
 		uploaderConfig.ListenAddress = fmt.Sprintf("localhost:%d", port)
-		uploaderConfig.SkipCertVerify = true
+		uploaderConfig.CCCACert = "../../fixtures/cc_uploader_ca_cn.crt"
+		uploaderConfig.CCClientCert = "../../fixtures/cc_uploader_cn.crt"
+		uploaderConfig.CCClientKey = "../../fixtures/cc_uploader_cn.key"
 
 		configFile, err = ioutil.TempFile("", "uploader_config")
 		Expect(err).NotTo(HaveOccurred())

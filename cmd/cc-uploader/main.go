@@ -2,8 +2,11 @@ package main
 
 import (
 	"crypto/tls"
+	"crypto/x509"
 	"flag"
 	"fmt"
+	"io/ioutil"
+	"log"
 	"net"
 	"net/http"
 	"os"
@@ -96,6 +99,26 @@ func initializeDropsonde(logger lager.Logger, uploaderConfig config.UploaderConf
 	}
 }
 
+func initializeTlsConfig(uploaderConfig config.UploaderConfig) *tls.Config {
+	cert, err := tls.LoadX509KeyPair(uploaderConfig.CCClientCert, uploaderConfig.CCClientKey)
+	if err != nil {
+		log.Fatalln("Unable to load cert", err)
+	}
+
+	clientCACert, err := ioutil.ReadFile(uploaderConfig.CCCACert)
+	if err != nil {
+		log.Fatal("Unable to open cert", err)
+	}
+
+	clientCertPool := x509.NewCertPool()
+	clientCertPool.AppendCertsFromPEM(clientCACert)
+	return &tls.Config{
+		InsecureSkipVerify: false,
+		Certificates:       []tls.Certificate{cert},
+		RootCAs:            clientCertPool,
+	}
+}
+
 func initializeServer(logger lager.Logger, uploaderConfig config.UploaderConfig) ifrit.Runner {
 	transport := &http.Transport{
 		Proxy: http.ProxyFromEnvironment,
@@ -103,9 +126,7 @@ func initializeServer(logger lager.Logger, uploaderConfig config.UploaderConfig)
 			Timeout:   ccUploadDialTimeout,
 			KeepAlive: ccUploadKeepAlive,
 		}).Dial,
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: uploaderConfig.SkipCertVerify,
-		},
+		TLSClientConfig:     initializeTlsConfig(uploaderConfig),
 		TLSHandshakeTimeout: ccUploadTLSHandshakeTimeout,
 	}
 

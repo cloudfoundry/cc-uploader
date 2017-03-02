@@ -31,7 +31,12 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	return []byte(ccUploaderPath)
 }, func(ccUploaderPath []byte) {
 	fakeCCAddress := fmt.Sprintf("127.0.0.1:%d", 6767+GinkgoParallelNode())
-	fakeCC = fake_cc.New(fakeCCAddress)
+	fakeCC = fake_cc.New(
+		fakeCCAddress,
+		"../../fixtures/cc_uploader_ca_cn.crt",
+		"../../fixtures/cc_cn.crt",
+		"../../fixtures/cc_cn.key",
+	)
 
 	ccUploaderBinary = string(ccUploaderPath)
 
