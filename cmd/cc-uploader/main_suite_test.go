@@ -16,8 +16,10 @@ import (
 )
 
 var ccUploaderBinary string
+var fakeCCTLS *fake_cc.FakeCC
 var fakeCC *fake_cc.FakeCC
 var fakeCCProcess ifrit.Process
+var fakeCCTLSProcess ifrit.Process
 var consulRunner *consulrunner.ClusterRunner
 
 func TestCCUploader(t *testing.T) {
@@ -30,13 +32,16 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	Expect(err).NotTo(HaveOccurred())
 	return []byte(ccUploaderPath)
 }, func(ccUploaderPath []byte) {
-	fakeCCAddress := fmt.Sprintf("127.0.0.1:%d", 6767+GinkgoParallelNode())
-	fakeCC = fake_cc.New(
-		fakeCCAddress,
+	fakeCCTLSAddress := fmt.Sprintf("127.0.0.1:%d", 6767+GinkgoParallelNode())
+	fakeCCTLS = fake_cc.NewTLS(
+		fakeCCTLSAddress,
 		"../../fixtures/cc_uploader_ca_cn.crt",
 		"../../fixtures/cc_cn.crt",
 		"../../fixtures/cc_cn.key",
 	)
+
+	fakeCCAddress := fmt.Sprintf("127.0.0.1:%d", 6767+GinkgoParallelNode())
+	fakeCC = fake_cc.New(fakeCCAddress)
 
 	ccUploaderBinary = string(ccUploaderPath)
 
@@ -59,9 +64,12 @@ var _ = SynchronizedAfterSuite(func() {
 var _ = BeforeEach(func() {
 	consulRunner.Reset()
 	fakeCCProcess = ifrit.Envoke(fakeCC)
+	fakeCCTLSProcess = ifrit.Envoke(fakeCCTLS)
 })
 
 var _ = AfterEach(func() {
 	fakeCCProcess.Signal(os.Kill)
+	fakeCCTLSProcess.Signal(os.Kill)
 	Eventually(fakeCCProcess.Wait()).Should(Receive(BeNil()))
+	Eventually(fakeCCTLSProcess.Wait()).Should(Receive(BeNil()))
 })

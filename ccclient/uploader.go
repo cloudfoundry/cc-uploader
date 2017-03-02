@@ -15,11 +15,13 @@ const MAX_UPLOAD_RETRIES = 3
 type uploader struct {
 	logger lager.Logger
 	client *http.Client
+	tlsClient *http.Client
 }
 
-func NewUploader(logger lager.Logger, httpClient *http.Client) Uploader {
+func NewUploader(logger lager.Logger, httpClient *http.Client, httpsClient *http.Client) Uploader {
 	return &uploader{
 		client: httpClient,
+		tlsClient: httpsClient,
 		logger: logger.Session("uploader"),
 	}
 }
@@ -39,6 +41,10 @@ func (u *uploader) Upload(uploadURL *url.URL, filename string, r *http.Request, 
 
 	uploadReq.Header.Set(contentMD5Header, r.Header.Get(contentMD5Header))
 	uploadReq.URL = uploadURL
+
+	if uploadURL.Scheme == "http" {
+		// WE ARE HERE
+	}
 
 	var rsp *http.Response
 	var uploadErr error

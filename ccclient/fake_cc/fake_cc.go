@@ -15,9 +15,12 @@ import (
 	"github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/tedsuo/ifrit/http_server"
+	"github.com/onsi/gomega/ghttp"
 )
 
 const (
+	username = "bob"
+	password = "password"
 	finishedResponseBody = `
         {
             "metadata":{
@@ -46,7 +49,7 @@ type FakeCC struct {
 	mtls_key                     string
 }
 
-func New(address, ca_cert, mtls_cert, mtls_key string) *FakeCC {
+func NewTLS(address, ca_cert, mtls_cert, mtls_key string) *FakeCC {
 	return &FakeCC{
 		address: 		      address,
 		UploadedDroplets:             map[string][]byte{},
@@ -62,30 +65,47 @@ func New(address, ca_cert, mtls_cert, mtls_key string) *FakeCC {
 	}
 }
 
-func (f *FakeCC) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
-	cert, err := tls.LoadX509KeyPair(f.mtls_cert, f.mtls_key)
-	if err != nil {
-		log.Fatalln("Unable to load cert", err)
+func New(address) *FakeCC {
+	return &FakeCC{
+		address:                      address,
+		UploadedDroplets:             map[string][]byte{},
+		UploadedBuildArtifactsCaches: map[string][]byte{},
+		stagingGuids:                 []string{},
+		stagingResponses:             []cc_messages.StagingResponseForCC{},
+		stagingResponseStatusCode:    http.StatusOK,
+		stagingResponseBody:          "{}",
+		lock:                         new(sync.RWMutex),
 	}
-	caCert, err := ioutil.ReadFile(f.ca_cert)
-	if err != nil {
-		log.Fatal("Unable to open cert", err)
-	}
+}
 
-	clientCertPool := x509.NewCertPool()
-	clientCertPool.AppendCertsFromPEM(caCert)
-	tlsConfig := &tls.Config{
-		InsecureSkipVerify: false,
-		Certificates:       []tls.Certificate{cert},
-		ClientAuth:         tls.RequireAndVerifyClientCert,
-		ClientCAs:          clientCertPool,
-		RootCAs:            clientCertPool,
-		CipherSuites: []uint16{
-			tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-		},
+func (f *FakeCC) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
+	if f.mtls_cert != nil {
+		cert, err := tls.LoadX509KeyPair(f.mtls_cert, f.mtls_key)
+		if err != nil {
+			log.Fatalln("Unable to load cert", err)
+		}
+		caCert, err := ioutil.ReadFile(f.ca_cert)
+		if err != nil {
+			log.Fatal("Unable to open cert", err)
+		}
+
+		clientCertPool := x509.NewCertPool()
+		clientCertPool.AppendCertsFromPEM(caCert)
+		tlsConfig := &tls.Config{
+			InsecureSkipVerify: false,
+			Certificates:       []tls.Certificate{cert},
+			ClientAuth:         tls.RequireAndVerifyClientCert,
+			ClientCAs:          clientCertPool,
+			RootCAs:            clientCertPool,
+			CipherSuites: []uint16{
+				tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+				tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+			},
+		}
+		err = http_server.NewTLSServer(f.address, f, tlsConfig).Run(signals, ready)
+	} else {
+		err := http_server.New(f.address, f).Run(signals, ready)
 	}
-	err = http_server.NewTLSServer(f.address, f, tlsConfig).Run(signals, ready)
 
 	f.Reset()
 
@@ -93,7 +113,11 @@ func (f *FakeCC) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 }
 
 func (f *FakeCC) Address() string {
-	return "https://" + f.address
+	if f.mtls_cert != nil {
+		return "https://" + f.address
+	}
+
+	return "http://" + f.address
 }
 
 func (f *FakeCC) Reset() {
@@ -147,6 +171,13 @@ func (f *FakeCC) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (f *FakeCC) handleDropletUploadRequest(w http.ResponseWriter, r *http.Request) {
+	var basicAuthVerifier http.HandlerFunc
+
+	if f.mtls_cert == nil {
+		basicAuthVerifier = ghttp.VerifyBasicAuth(CC_USERNAME, CC_PASSWORD)
+		basicAuthVerifier(w, r)
+	}
+
 	key := getFileUploadKey(r)
 	file, _, err := r.FormFile(key)
 	Expect(err).NotTo(HaveOccurred())

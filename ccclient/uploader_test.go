@@ -42,7 +42,7 @@ var _ = Describe("Uploader", func() {
 				httpClient := &http.Client{
 					Transport: transport,
 				}
-				u = ccclient.NewUploader(lagertest.NewTestLogger("test"), httpClient)
+				u = ccclient.NewUploader(lagertest.NewTestLogger("test"), httpClient, nil)
 				response, uploadErr = u.Upload(uploadURL, filename, incomingRequest, make(chan struct{}))
 			})
 
@@ -91,6 +91,18 @@ var _ = Describe("Uploader", func() {
 					})
 
 					It("Forwards the basic auth credentials", func() {
+						var uploadRequest *http.Request
+						Eventually(uploadRequestChan).Should(Receive(&uploadRequest))
+						Expect(uploadRequest.URL.User).To(Equal(url.UserPassword("bob", "cobb")))
+					})
+				})
+
+				Context("When the upload URL is https", func() {
+					BeforeEach(func() {
+						uploadURL, _ = url.Parse("https://example.com")
+					})
+
+					It("Uses the mTLS client to perform the upload", func() {
 						var uploadRequest *http.Request
 						Eventually(uploadRequestChan).Should(Receive(&uploadRequest))
 						Expect(uploadRequest.URL.User).To(Equal(url.UserPassword("bob", "cobb")))
@@ -192,7 +204,7 @@ var _ = Describe("Uploader", func() {
 					httpClient := &http.Client{
 						Transport: transport,
 					}
-					u = ccclient.NewUploader(lagertest.NewTestLogger("test"), httpClient)
+					u = ccclient.NewUploader(lagertest.NewTestLogger("test"), httpClient, nil)
 					response, uploadErr = u.Upload(uploadURL, filename, incomingRequest, cancelChan)
 					close(uploadCompleted)
 				}()
