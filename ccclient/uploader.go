@@ -18,11 +18,10 @@ type uploader struct {
 	tlsClient *http.Client
 }
 
-func NewUploader(logger lager.Logger, httpClient *http.Client, httpsClient *http.Client) Uploader {
+func NewUploader(logger lager.Logger, httpClient *http.Client) Uploader {
 	return &uploader{
-		client:    httpClient,
-		tlsClient: httpsClient,
-		logger:    logger.Session("uploader"),
+		client: httpClient,
+		logger: logger.Session("uploader"),
 	}
 }
 
@@ -72,26 +71,19 @@ func (u *uploader) do(req *http.Request, cancelChan <-chan struct{}) (*http.Resp
 	completion := make(chan struct{})
 	defer close(completion)
 
-	var c *http.Client
-	if req.URL.Scheme == "http" {
-		c = u.client
-	} else {
-		c = u.tlsClient
-	}
-
 	go func() {
 		select {
 		case <-cancelChan:
-			if canceller, ok := c.Transport.(requestCanceller); ok {
+			if canceller, ok := u.client.Transport.(requestCanceller); ok {
 				canceller.CancelRequest(req)
 			} else {
-				u.logger.Error("Invalid transport, does not support CancelRequest", nil, lager.Data{"transport": c.Transport})
+				u.logger.Error("Invalid transport, does not support CancelRequest", nil, lager.Data{"transport": u.client.Transport})
 			}
 		case <-completion:
 		}
 	}()
 
-	rsp, err := c.Do(req)
+	rsp, err := u.client.Do(req)
 
 	req.Body.Close()
 	if err != nil {
