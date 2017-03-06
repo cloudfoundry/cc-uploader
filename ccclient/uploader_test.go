@@ -2,14 +2,22 @@ package ccclient_test
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
 
+	"net/http/httptest"
+
 	"code.cloudfoundry.org/cc-uploader/ccclient"
+	"code.cloudfoundry.org/cc-uploader/ccclient/fake_cc"
 	"code.cloudfoundry.org/cc-uploader/ccclient/test_helpers"
 	"code.cloudfoundry.org/lager/lagertest"
+
+	"crypto/tls"
+	"crypto/x509"
+	"log"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -17,8 +25,10 @@ import (
 
 var _ = Describe("Uploader", func() {
 	var (
-		u         ccclient.Uploader
-		transport http.RoundTripper
+		u               ccclient.Uploader
+		transport       http.RoundTripper
+		fakeCCTLS       *fake_cc.FakeCC
+		fakeCCTLSServer *httptest.Server
 	)
 
 	Describe("Upload", func() {
@@ -35,6 +45,39 @@ var _ = Describe("Uploader", func() {
 			uploadURL, _ = url.Parse("http://example.com")
 			filename = "filename"
 			incomingRequest = createValidRequest()
+
+			fakeCCTLS = fake_cc.New()
+			fakeCCTLSServer = httptest.NewUnstartedServer(fakeCCTLS)
+
+			cert, err := tls.LoadX509KeyPair("../fixtures/cc_cn.crt", "../fixtures/cc_cn.key")
+			if err != nil {
+				log.Fatalln("Unable to load cert", err)
+			}
+			caCert, err := ioutil.ReadFile("../fixtures/cc_uploader_ca_cn.crt")
+			if err != nil {
+				log.Fatal("Unable to open cert", err)
+			}
+
+			clientCertPool := x509.NewCertPool()
+			clientCertPool.AppendCertsFromPEM(caCert)
+			tlsConfig := &tls.Config{
+				InsecureSkipVerify: false,
+				Certificates:       []tls.Certificate{cert},
+				ClientAuth:         tls.RequireAndVerifyClientCert,
+				ClientCAs:          clientCertPool,
+				RootCAs:            clientCertPool,
+				CipherSuites: []uint16{
+					tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+					tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+				},
+			}
+
+			fakeCCTLSServer.TLS = tlsConfig
+			fakeCCTLSServer.StartTLS()
+		})
+
+		AfterEach(func() {
+			fakeCCTLSServer.Close()
 		})
 
 		Context("when not cancelling", func() {
@@ -42,7 +85,9 @@ var _ = Describe("Uploader", func() {
 				httpClient := &http.Client{
 					Transport: transport,
 				}
-				u = ccclient.NewUploader(lagertest.NewTestLogger("test"), httpClient, nil)
+
+				u = ccclient.NewUploader(lagertest.NewTestLogger("test"), httpClient, makeHttpsClient())
+				fmt.Fprintf(GinkgoWriter, "Uploading to URL %s\n", uploadURL.String())
 				response, uploadErr = u.Upload(uploadURL, filename, incomingRequest, make(chan struct{}))
 			})
 
@@ -99,13 +144,14 @@ var _ = Describe("Uploader", func() {
 
 				Context("When the upload URL is https", func() {
 					BeforeEach(func() {
-						uploadURL, _ = url.Parse("https://example.com")
+						uploadURL, _ = url.Parse(fmt.Sprintf("%s/staging/droplets/myappguid/upload", fakeCCTLSServer.URL))
+						incomingRequest, _ = http.NewRequest("POST", uploadURL.String(), bytes.NewReader([]byte("the-file-contents'")))
 					})
 
 					It("Uses the mTLS client to perform the upload", func() {
 						var uploadRequest *http.Request
-						Eventually(uploadRequestChan).Should(Receive(&uploadRequest))
-						Expect(uploadRequest.URL.User).To(Equal(url.UserPassword("bob", "cobb")))
+						Consistently(uploadRequestChan).ShouldNot(Receive(&uploadRequest))
+						Expect(response.StatusCode).To(Equal(http.StatusOK))
 					})
 				})
 
@@ -229,9 +275,42 @@ func createValidRequest() *http.Request {
 	request.Header.Set("Content-MD5", "the-md5")
 	request.Body = ioutil.NopCloser(bytes.NewBufferString(""))
 
+	fmt.Fprintf(GinkgoWriter, "Content-length %d\n", request.ContentLength)
+
 	return request
 }
 
 func responseWithCode(code int) *http.Response {
 	return &http.Response{StatusCode: code, Body: ioutil.NopCloser(bytes.NewBufferString(""))}
+}
+
+func makeHttpsClient() *http.Client {
+	transport := &http.Transport{
+		Proxy:           http.ProxyFromEnvironment,
+		TLSClientConfig: initializeTlsConfig(),
+	}
+
+	return &http.Client{
+		Transport: transport,
+	}
+}
+
+func initializeTlsConfig() *tls.Config {
+	cert, err := tls.LoadX509KeyPair("../fixtures/cc_uploader_cn.crt", "../fixtures/cc_uploader_cn.key")
+	if err != nil {
+		log.Fatalln("Unable to load cert", err)
+	}
+
+	clientCACert, err := ioutil.ReadFile("../fixtures/cc_uploader_ca_cn.crt")
+	if err != nil {
+		log.Fatal("Unable to open cert", err)
+	}
+
+	clientCertPool := x509.NewCertPool()
+	clientCertPool.AppendCertsFromPEM(clientCACert)
+	return &tls.Config{
+		InsecureSkipVerify: false,
+		Certificates:       []tls.Certificate{cert},
+		RootCAs:            clientCertPool,
+	}
 }

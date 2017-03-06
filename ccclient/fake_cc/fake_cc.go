@@ -1,26 +1,18 @@
 package fake_cc
 
 import (
-	"crypto/tls"
-	"crypto/x509"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
-	"os"
 	"regexp"
 	"sync"
 
 	"code.cloudfoundry.org/runtimeschema/cc_messages"
 	"github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/tedsuo/ifrit/http_server"
-	"github.com/onsi/gomega/ghttp"
 )
 
 const (
-	username = "bob"
-	password = "password"
 	finishedResponseBody = `
         {
             "metadata":{
@@ -44,91 +36,18 @@ type FakeCC struct {
 	stagingResponseStatusCode    int
 	stagingResponseBody          string
 	lock                         *sync.RWMutex
-	ca_cert                      string
-	mtls_cert                    string
-	mtls_key                     string
+	requestCount                 int
 }
 
-func NewTLS(address, ca_cert, mtls_cert, mtls_key string) *FakeCC {
+func New() *FakeCC {
 	return &FakeCC{
-		address: 		      address,
 		UploadedDroplets:             map[string][]byte{},
 		UploadedBuildArtifactsCaches: map[string][]byte{},
 		stagingGuids:                 []string{},
 		stagingResponses:             []cc_messages.StagingResponseForCC{},
 		stagingResponseStatusCode:    http.StatusOK,
 		stagingResponseBody:          "{}",
-		lock:                         new(sync.RWMutex),
-		ca_cert:                      ca_cert,
-		mtls_cert:                    mtls_cert,
-		mtls_key:                     mtls_key,
 	}
-}
-
-func New(address) *FakeCC {
-	return &FakeCC{
-		address:                      address,
-		UploadedDroplets:             map[string][]byte{},
-		UploadedBuildArtifactsCaches: map[string][]byte{},
-		stagingGuids:                 []string{},
-		stagingResponses:             []cc_messages.StagingResponseForCC{},
-		stagingResponseStatusCode:    http.StatusOK,
-		stagingResponseBody:          "{}",
-		lock:                         new(sync.RWMutex),
-	}
-}
-
-func (f *FakeCC) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
-	if f.mtls_cert != nil {
-		cert, err := tls.LoadX509KeyPair(f.mtls_cert, f.mtls_key)
-		if err != nil {
-			log.Fatalln("Unable to load cert", err)
-		}
-		caCert, err := ioutil.ReadFile(f.ca_cert)
-		if err != nil {
-			log.Fatal("Unable to open cert", err)
-		}
-
-		clientCertPool := x509.NewCertPool()
-		clientCertPool.AppendCertsFromPEM(caCert)
-		tlsConfig := &tls.Config{
-			InsecureSkipVerify: false,
-			Certificates:       []tls.Certificate{cert},
-			ClientAuth:         tls.RequireAndVerifyClientCert,
-			ClientCAs:          clientCertPool,
-			RootCAs:            clientCertPool,
-			CipherSuites: []uint16{
-				tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-				tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-			},
-		}
-		err = http_server.NewTLSServer(f.address, f, tlsConfig).Run(signals, ready)
-	} else {
-		err := http_server.New(f.address, f).Run(signals, ready)
-	}
-
-	f.Reset()
-
-	return err
-}
-
-func (f *FakeCC) Address() string {
-	if f.mtls_cert != nil {
-		return "https://" + f.address
-	}
-
-	return "http://" + f.address
-}
-
-func (f *FakeCC) Reset() {
-	f.lock.Lock()
-	defer f.lock.Unlock()
-	f.UploadedDroplets = map[string][]byte{}
-	f.UploadedBuildArtifactsCaches = map[string][]byte{}
-	f.stagingGuids = []string{}
-	f.stagingResponses = []cc_messages.StagingResponseForCC{}
-	f.stagingResponseStatusCode = http.StatusOK
-	f.stagingResponseBody = "{}"
 }
 
 func (f *FakeCC) SetStagingResponseStatusCode(statusCode int) {
@@ -151,17 +70,25 @@ func (f *FakeCC) StagingResponses() []cc_messages.StagingResponseForCC {
 	return f.stagingResponses
 }
 
+func (f *FakeCC) RequestCount() int {
+	return f.requestCount
+}
+
 func (f *FakeCC) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(ginkgo.GinkgoWriter, "[FAKE CC] Handling request: %s\n", r.URL.Path)
 
 	endpoints := map[string]func(http.ResponseWriter, *http.Request){
+		".*": f.handleDropletUploadRequest,
 		"/staging/droplets/.*/upload": f.handleDropletUploadRequest,
 	}
+
+	f.requestCount = f.requestCount + 1
 
 	for pattern, handler := range endpoints {
 		re := regexp.MustCompile(pattern)
 		matches := re.FindStringSubmatch(r.URL.Path)
 		if matches != nil {
+			ginkgo.GinkgoWriter.Write([]byte("FOUND A MATCH"))
 			handler(w, r)
 			return
 		}
@@ -170,13 +97,14 @@ func (f *FakeCC) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ginkgo.Fail(fmt.Sprintf("[FAKE CC] No matching endpoint handler for %s", r.URL.Path))
 }
 
-func (f *FakeCC) handleDropletUploadRequest(w http.ResponseWriter, r *http.Request) {
-	var basicAuthVerifier http.HandlerFunc
+func (f *FakeCC) handleDefaultRequest(w http.ResponseWriter, r *http.Request) {
+	ginkgo.GinkgoWriter.Write([]byte("GOT A REQUEST FOR DEFAULT"))
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("OK"))
+}
 
-	if f.mtls_cert == nil {
-		basicAuthVerifier = ghttp.VerifyBasicAuth(CC_USERNAME, CC_PASSWORD)
-		basicAuthVerifier(w, r)
-	}
+func (f *FakeCC) handleDropletUploadRequest(w http.ResponseWriter, r *http.Request) {
+	ginkgo.GinkgoWriter.Write([]byte("GOT A REQUEST FOR DROPLET"))
 
 	key := getFileUploadKey(r)
 	file, _, err := r.FormFile(key)
@@ -186,6 +114,7 @@ func (f *FakeCC) handleDropletUploadRequest(w http.ResponseWriter, r *http.Reque
 	Expect(err).NotTo(HaveOccurred())
 
 	re := regexp.MustCompile("/staging/droplets/(.*)/upload")
+	fmt.Fprintf(ginkgo.GinkgoWriter, "Request URL: %s\n", r.URL.String())
 	appGuid := re.FindStringSubmatch(r.URL.Path)[1]
 
 	f.UploadedDroplets[appGuid] = uploadedBytes

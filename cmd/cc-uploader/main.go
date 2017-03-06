@@ -134,7 +134,7 @@ func initializeServer(logger lager.Logger, uploaderConfig config.UploaderConfig)
 	pollerHttpClient.Transport = transport
 
 	// NewUploader takes two http.Clients, one TLS, one not?)
-	uploader := ccclient.NewUploader(logger, &http.Client{Transport: transport})
+	uploader := ccclient.NewUploader(logger, &http.Client{Transport: transport}, &http.Client{Transport: transport})
 	poller := ccclient.NewPoller(logger, pollerHttpClient, time.Duration(uploaderConfig.CCJobPollingInterval))
 
 	ccUploaderHandler, err := handlers.New(uploader, poller, logger)

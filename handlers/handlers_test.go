@@ -52,7 +52,7 @@ var _ = Describe("Handlers", func() {
 
 		fakeCloudController = ghttp.NewServer()
 
-		uploader := ccclient.NewUploader(logger, http.DefaultClient)
+		uploader := ccclient.NewUploader(logger, http.DefaultClient, http.DefaultClient)
 		poller := ccclient.NewPoller(logger, http.DefaultClient, 100*time.Millisecond)
 
 		handler, err = handlers.New(uploader, poller, logger)

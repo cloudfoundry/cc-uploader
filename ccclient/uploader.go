@@ -13,16 +13,16 @@ import (
 const MAX_UPLOAD_RETRIES = 3
 
 type uploader struct {
-	logger lager.Logger
-	client *http.Client
+	logger    lager.Logger
+	client    *http.Client
 	tlsClient *http.Client
 }
 
 func NewUploader(logger lager.Logger, httpClient *http.Client, httpsClient *http.Client) Uploader {
 	return &uploader{
-		client: httpClient,
+		client:    httpClient,
 		tlsClient: httpsClient,
-		logger: logger.Session("uploader"),
+		logger:    logger.Session("uploader"),
 	}
 }
 
@@ -41,10 +41,6 @@ func (u *uploader) Upload(uploadURL *url.URL, filename string, r *http.Request, 
 
 	uploadReq.Header.Set(contentMD5Header, r.Header.Get(contentMD5Header))
 	uploadReq.URL = uploadURL
-
-	if uploadURL.Scheme == "http" {
-		// WE ARE HERE
-	}
 
 	var rsp *http.Response
 	var uploadErr error
@@ -76,19 +72,27 @@ func (u *uploader) do(req *http.Request, cancelChan <-chan struct{}) (*http.Resp
 	completion := make(chan struct{})
 	defer close(completion)
 
+	var c *http.Client
+	if req.URL.Scheme == "http" {
+		c = u.client
+	} else {
+		c = u.tlsClient
+	}
+
 	go func() {
 		select {
 		case <-cancelChan:
-			if canceller, ok := u.client.Transport.(requestCanceller); ok {
+			if canceller, ok := c.Transport.(requestCanceller); ok {
 				canceller.CancelRequest(req)
 			} else {
-				u.logger.Error("Invalid transport, does not support CancelRequest", nil, lager.Data{"transport": u.client.Transport})
+				u.logger.Error("Invalid transport, does not support CancelRequest", nil, lager.Data{"transport": c.Transport})
 			}
 		case <-completion:
 		}
 	}()
 
-	rsp, err := u.client.Do(req)
+	rsp, err := c.Do(req)
+
 	req.Body.Close()
 	if err != nil {
 		return nil, err

@@ -6,12 +6,14 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"os"
 	"os/exec"
 	"time"
 
 	"code.cloudfoundry.org/cc-uploader"
+	"code.cloudfoundry.org/cc-uploader/ccclient/fake_cc"
 	"code.cloudfoundry.org/cc-uploader/config"
 	"code.cloudfoundry.org/runtimeschema/cc_messages"
 	"code.cloudfoundry.org/urljoiner"
@@ -46,16 +48,17 @@ func (emitter *ByteEmitter) Read(p []byte) (n int, err error) {
 
 var _ = Describe("CC Uploader", func() {
 	var (
-		port       int
-		address    string
-		session    *gexec.Session
-		err        error
-		configFile *os.File
-		appGuid    = "app-guid"
+		port         int
+		address      string
+		session      *gexec.Session
+		err          error
+		configFile   *os.File
+		appGuid      = "app-guid"
+		fakeCCServer *httptest.Server
 	)
 
 	dropletUploadRequest := func(appGuid string, body io.Reader, contentLength int) *http.Request {
-		ccUrl, err := url.Parse(fakeCC.Address())
+		ccUrl, err := url.Parse(fakeCCServer.URL)
 		Expect(err).NotTo(HaveOccurred())
 		ccUrl.Path = urljoiner.Join("staging", "droplets", appGuid, "upload")
 		v := url.Values{"async": []string{"true"}}
@@ -82,6 +85,11 @@ var _ = Describe("CC Uploader", func() {
 
 	BeforeEach(func() {
 		Expect(err).NotTo(HaveOccurred())
+
+		fakeCC = fake_cc.New()
+		fakeCCServer = httptest.NewUnstartedServer(fakeCC)
+		fakeCCServer.Start()
+
 		port = 8182 + GinkgoParallelNode()
 		address = fmt.Sprintf("http://localhost:%d", port)
 
@@ -109,6 +117,7 @@ var _ = Describe("CC Uploader", func() {
 	})
 
 	AfterEach(func() {
+		fakeCCServer.Close()
 		os.Remove(configFile.Name())
 		session.Kill().Wait()
 	})
