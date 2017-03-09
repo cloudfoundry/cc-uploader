@@ -9,6 +9,8 @@ CC Bridge component to enable Diego to upload files to Cloud Controller's blobst
 
 Uploading droplets & build artifacts via CC involves crafting a correctly-formed multipart request. For Droplets we also poll until the async job completes.
 
+## Testing
+
 To specify a remote cloud controller to test against, use the following environment variables:
 
 CC_ADDRESS the hostname for a deployed CC
