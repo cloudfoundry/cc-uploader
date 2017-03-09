@@ -16,7 +16,6 @@ import (
 	"code.cloudfoundry.org/cc-uploader/ccclient"
 	"code.cloudfoundry.org/cc-uploader/config"
 	"code.cloudfoundry.org/cc-uploader/handlers"
-	"code.cloudfoundry.org/cfhttp"
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/consuladapter"
 	"code.cloudfoundry.org/debugserver"
@@ -55,8 +54,6 @@ func main() {
 	}
 
 	logger, reconfigurableSink := lagerflags.NewFromConfig("cc-uploader", uploaderConfig.LagerConfig)
-
-	cfhttp.Initialize(communicationTimeout)
 
 	initializeDropsonde(logger, uploaderConfig)
 	consulClient, err := consuladapter.NewClientFromUrl(uploaderConfig.ConsulCluster)
@@ -130,12 +127,9 @@ func initializeServer(logger lager.Logger, uploaderConfig config.UploaderConfig)
 		TLSHandshakeTimeout: ccUploadTLSHandshakeTimeout,
 	}
 
-	pollerHttpClient := cfhttp.NewClient()
-	pollerHttpClient.Transport = transport
-
 	// NewUploader takes two http.Clients, one TLS, one not?)
 	uploader := ccclient.NewUploader(logger, &http.Client{Transport: transport})
-	poller := ccclient.NewPoller(logger, pollerHttpClient, time.Duration(uploaderConfig.CCJobPollingInterval))
+	poller := ccclient.NewPoller(logger, &http.Client{Transport: transport}, time.Duration(uploaderConfig.CCJobPollingInterval))
 
 	ccUploaderHandler, err := handlers.New(uploader, poller, logger)
 	if err != nil {
