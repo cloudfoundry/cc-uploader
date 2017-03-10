@@ -96,7 +96,7 @@ func initializeDropsonde(logger lager.Logger, uploaderConfig config.UploaderConf
 	}
 }
 
-func initializeTlsConfig(uploaderConfig config.UploaderConfig) *tls.Config {
+func initializeTlsTransport(uploaderConfig config.UploaderConfig, skipVerify bool) *http.Transport {
 	cert, err := tls.LoadX509KeyPair(uploaderConfig.CCClientCert, uploaderConfig.CCClientKey)
 	if err != nil {
 		log.Fatalln("Unable to load cert", err)
@@ -107,29 +107,33 @@ func initializeTlsConfig(uploaderConfig config.UploaderConfig) *tls.Config {
 		log.Fatal("Unable to open cert", err)
 	}
 
-	clientCertPool := x509.NewCertPool()
-	clientCertPool.AppendCertsFromPEM(clientCACert)
-	return &tls.Config{
-		InsecureSkipVerify: false,
-		Certificates:       []tls.Certificate{cert},
-		RootCAs:            clientCertPool,
+	clientCertPool, err := x509.SystemCertPool()
+	if err != nil {
+		log.Fatal("Unable to open system certificate pool", err)
 	}
-}
 
-func initializeServer(logger lager.Logger, uploaderConfig config.UploaderConfig) ifrit.Runner {
-	transport := &http.Transport{
+	clientCertPool.AppendCertsFromPEM(clientCACert)
+
+	return &http.Transport{
 		Proxy: http.ProxyFromEnvironment,
 		Dial: (&net.Dialer{
 			Timeout:   ccUploadDialTimeout,
 			KeepAlive: ccUploadKeepAlive,
 		}).Dial,
-		TLSClientConfig:     initializeTlsConfig(uploaderConfig),
+		TLSClientConfig:     &tls.Config{
+			InsecureSkipVerify: skipVerify,
+			Certificates:       []tls.Certificate{cert},
+			RootCAs:            clientCertPool,
+		},
 		TLSHandshakeTimeout: ccUploadTLSHandshakeTimeout,
 	}
+}
 
-	// NewUploader takes two http.Clients, one TLS, one not?)
-	uploader := ccclient.NewUploader(logger, &http.Client{Transport: transport})
-	poller := ccclient.NewPoller(logger, &http.Client{Transport: transport}, time.Duration(uploaderConfig.CCJobPollingInterval))
+func initializeServer(logger lager.Logger, uploaderConfig config.UploaderConfig) ifrit.Runner {
+	uploader := ccclient.NewUploader(logger, &http.Client{Transport: initializeTlsTransport(uploaderConfig, false)})
+
+	// To maintain backwards compatibility with hairpin polling URLs, skip SSL verification for now
+	poller := ccclient.NewPoller(logger, &http.Client{Transport: initializeTlsTransport(uploaderConfig, true)}, time.Duration(uploaderConfig.CCJobPollingInterval))
 
 	ccUploaderHandler, err := handlers.New(uploader, poller, logger)
 	if err != nil {
