@@ -16,6 +16,7 @@ import (
 	"code.cloudfoundry.org/cc-uploader/ccclient"
 	"code.cloudfoundry.org/cc-uploader/config"
 	"code.cloudfoundry.org/cc-uploader/handlers"
+	"code.cloudfoundry.org/cfhttp"
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/consuladapter"
 	"code.cloudfoundry.org/debugserver"
@@ -64,7 +65,8 @@ func main() {
 	registrationRunner := initializeRegistrationRunner(logger, consulClient, uploaderConfig.ListenAddress, clock.NewClock())
 
 	members := grouper.Members{
-		{"cc-uploader", initializeServer(logger, uploaderConfig)},
+		{"cc-uploader", initializeServer(logger, uploaderConfig, false)},
+		{"cc-uploader-tls", initializeServer(logger, uploaderConfig, true)},
 		{"registration-runner", registrationRunner},
 	}
 
@@ -120,7 +122,7 @@ func initializeTlsTransport(uploaderConfig config.UploaderConfig, skipVerify boo
 			Timeout:   ccUploadDialTimeout,
 			KeepAlive: ccUploadKeepAlive,
 		}).Dial,
-		TLSClientConfig:     &tls.Config{
+		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: skipVerify,
 			Certificates:       []tls.Certificate{cert},
 			RootCAs:            clientCertPool,
@@ -128,8 +130,7 @@ func initializeTlsTransport(uploaderConfig config.UploaderConfig, skipVerify boo
 		TLSHandshakeTimeout: ccUploadTLSHandshakeTimeout,
 	}
 }
-
-func initializeServer(logger lager.Logger, uploaderConfig config.UploaderConfig) ifrit.Runner {
+func initializeServer(logger lager.Logger, uploaderConfig config.UploaderConfig, tlsServer bool) ifrit.Runner {
 	uploader := ccclient.NewUploader(logger, &http.Client{Transport: initializeTlsTransport(uploaderConfig, false)})
 
 	// To maintain backwards compatibility with hairpin polling URLs, skip SSL verification for now
@@ -141,6 +142,22 @@ func initializeServer(logger lager.Logger, uploaderConfig config.UploaderConfig)
 		os.Exit(1)
 	}
 
+	if tlsServer {
+		tlsConfig, err := cfhttp.NewTLSConfig(
+			uploaderConfig.MutualTLS.ServerCert,
+			uploaderConfig.MutualTLS.ServerKey,
+			uploaderConfig.MutualTLS.CACert)
+		tlsConfig.MinVersion = tls.VersionTLS12
+		tlsConfig.CipherSuites = []uint16{
+			tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+		}
+
+		if err != nil {
+			logger.Fatal("failed-loading-tls-config", err)
+		}
+		return http_server.NewTLSServer(uploaderConfig.MutualTLS.ListenAddress, ccUploaderHandler, tlsConfig)
+	}
 	return http_server.New(uploaderConfig.ListenAddress, ccUploaderHandler)
 }
 

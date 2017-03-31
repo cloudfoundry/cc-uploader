@@ -13,11 +13,13 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"time"
 
 	"code.cloudfoundry.org/cc-uploader"
 	"code.cloudfoundry.org/cc-uploader/ccclient/fake_cc"
 	"code.cloudfoundry.org/cc-uploader/config"
+	"code.cloudfoundry.org/cfhttp"
 	"code.cloudfoundry.org/runtimeschema/cc_messages"
 	"code.cloudfoundry.org/urljoiner"
 	"github.com/hashicorp/consul/api"
@@ -51,17 +53,16 @@ func (emitter *ByteEmitter) Read(p []byte) (n int, err error) {
 
 var _ = Describe("CC Uploader", func() {
 	var (
-		port           int
-		address        string
+		uploaderConfig config.UploaderConfig
+		httpListenPort int
 		session        *gexec.Session
-		err            error
 		configFile     *os.File
 		appGuid        = "app-guid"
+		mTLSConfig     config.MutualTLS
 		fakeCCServer   *httptest.Server
-		uploaderConfig config.UploaderConfig
 	)
 
-	dropletUploadRequest := func(appGuid string, body io.Reader, contentLength int) *http.Request {
+	dropletUploadRequest := func(appGuid string, body io.Reader, contentLength int, address string) *http.Request {
 		ccUrl, err := url.Parse(fakeCCServer.URL)
 		Expect(err).NotTo(HaveOccurred())
 		ccUrl.Path = urljoiner.Join("staging", "droplets", appGuid, "upload")
@@ -87,19 +88,20 @@ var _ = Describe("CC Uploader", func() {
 		return postRequest
 	}
 
-	BeforeEach(func() {
-		Expect(err).NotTo(HaveOccurred())
-
-		port = 8182 + GinkgoParallelNode()
-		address = fmt.Sprintf("http://localhost:%d", port)
+	JustBeforeEach(func() {
+		httpListenPort = 8182 + GinkgoParallelNode()
 
 		uploaderConfig = config.DefaultUploaderConfig()
 		uploaderConfig.ConsulCluster = consulRunner.URL()
-		uploaderConfig.ListenAddress = fmt.Sprintf("localhost:%d", port)
+		uploaderConfig.ListenAddress = fmt.Sprintf("localhost:%d", httpListenPort)
 		uploaderConfig.CCCACert = "../../fixtures/cc_uploader_ca_cn.crt"
 		uploaderConfig.CCClientCert = "../../fixtures/cc_uploader_cn.crt"
 		uploaderConfig.CCClientKey = "../../fixtures/cc_uploader_cn.key"
 
+		uploaderConfig.ListenAddress = fmt.Sprintf("localhost:%d", httpListenPort)
+		uploaderConfig.MutualTLS = mTLSConfig
+
+		var err error
 		configFile, err = ioutil.TempFile("", "uploader_config")
 		Expect(err).NotTo(HaveOccurred())
 		configJson, err := json.Marshal(uploaderConfig)
@@ -121,6 +123,47 @@ var _ = Describe("CC Uploader", func() {
 		session.Kill().Wait()
 	})
 
+	Describe("mutual TLS", func() {
+		var httpsListenPort int
+
+		BeforeEach(func() {
+			httpsListenPort = 9192 + GinkgoParallelNode()
+			mTLSConfig = config.MutualTLS{
+				ListenAddress: fmt.Sprintf("localhost:%d", httpsListenPort),
+				CACert:        filepath.Join("..", "..", "fixtures", "certs", "ca.crt"),
+				ServerCert:    filepath.Join("..", "..", "fixtures", "certs", "server.crt"),
+				ServerKey:     filepath.Join("..", "..", "fixtures", "certs", "server.key"),
+			}
+			fakeCC = fake_cc.New()
+			fakeCCServer = httptest.NewUnstartedServer(fakeCC)
+			fakeCCServer.Start()
+		})
+
+		Describe("uploading a file", func() {
+			var contentLength = 100
+
+			It("should upload the file...", func() {
+				emitter := NewEmitter(contentLength)
+				address := fmt.Sprintf("https://localhost:%d", httpsListenPort)
+				postRequest := dropletUploadRequest(appGuid, emitter, contentLength, address)
+				httpClient := cfhttp.NewClient()
+				tlsConfig, err := cfhttp.NewTLSConfig(
+					filepath.Join("..", "..", "fixtures", "certs", "client.crt"),
+					filepath.Join("..", "..", "fixtures", "certs", "client.key"),
+					filepath.Join("..", "..", "fixtures", "certs", "ca.crt"),
+				)
+				Expect(err).NotTo(HaveOccurred())
+				httpClient.Transport = &http.Transport{TLSClientConfig: tlsConfig}
+				resp, err := httpClient.Do(postRequest)
+				Expect(err).NotTo(HaveOccurred())
+				defer resp.Body.Close()
+
+				Expect(resp.StatusCode).To(Equal(http.StatusCreated))
+				Expect(len(fakeCC.UploadedDroplets[appGuid])).To(Equal(contentLength))
+			})
+		})
+	})
+
 	Describe("uploading a file", func() {
 		var contentLength = 100
 
@@ -137,7 +180,8 @@ var _ = Describe("CC Uploader", func() {
 
 			It("should upload the file using an HTTP client", func() {
 				emitter := NewEmitter(contentLength)
-				postRequest := dropletUploadRequest(appGuid, emitter, contentLength)
+				address := fmt.Sprintf("http://localhost:%d", httpListenPort)
+				postRequest := dropletUploadRequest(appGuid, emitter, contentLength, address)
 				resp, err := http.DefaultClient.Do(postRequest)
 				Expect(err).NotTo(HaveOccurred())
 				defer resp.Body.Close()
@@ -185,7 +229,8 @@ var _ = Describe("CC Uploader", func() {
 
 			It("should upload the file using an HTTPS client with mTLS", func() {
 				emitter := NewEmitter(contentLength)
-				postRequest := dropletUploadRequest(appGuid, emitter, contentLength)
+				address := fmt.Sprintf("http://localhost:%d", httpListenPort)
+				postRequest := dropletUploadRequest(appGuid, emitter, contentLength, address)
 				resp, err := http.DefaultClient.Do(postRequest)
 				Expect(err).NotTo(HaveOccurred())
 				defer resp.Body.Close()
@@ -204,7 +249,7 @@ var _ = Describe("CC Uploader", func() {
 				&api.AgentService{
 					Service: "cc-uploader",
 					ID:      "cc-uploader",
-					Port:    port,
+					Port:    httpListenPort,
 				}))
 		})
 
