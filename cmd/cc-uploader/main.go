@@ -130,6 +130,7 @@ func initializeTlsTransport(uploaderConfig config.UploaderConfig, skipVerify boo
 		TLSHandshakeTimeout: ccUploadTLSHandshakeTimeout,
 	}
 }
+
 func initializeServer(logger lager.Logger, uploaderConfig config.UploaderConfig, tlsServer bool) ifrit.Runner {
 	uploader := ccclient.NewUploader(logger, &http.Client{Transport: initializeTlsTransport(uploaderConfig, false)})
 
@@ -147,6 +148,12 @@ func initializeServer(logger lager.Logger, uploaderConfig config.UploaderConfig,
 			uploaderConfig.MutualTLS.ServerCert,
 			uploaderConfig.MutualTLS.ServerKey,
 			uploaderConfig.MutualTLS.CACert)
+
+		if err != nil {
+			logger.Error("new-tls-config-failed", err)
+			os.Exit(1)
+		}
+
 		tlsConfig.MinVersion = tls.VersionTLS12
 		tlsConfig.CipherSuites = []uint16{
 			tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,

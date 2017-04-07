@@ -53,13 +53,13 @@ func (emitter *ByteEmitter) Read(p []byte) (n int, err error) {
 
 var _ = Describe("CC Uploader", func() {
 	var (
-		uploaderConfig config.UploaderConfig
-		httpListenPort int
-		session        *gexec.Session
-		configFile     *os.File
-		appGuid        = "app-guid"
-		mTLSConfig     config.MutualTLS
-		fakeCCServer   *httptest.Server
+		uploaderConfig  config.UploaderConfig
+		httpListenPort  int
+		httpsListenPort int
+		session         *gexec.Session
+		configFile      *os.File
+		appGuid         = "app-guid"
+		fakeCCServer    *httptest.Server
 	)
 
 	dropletUploadRequest := func(appGuid string, body io.Reader, contentLength int, address string) *http.Request {
@@ -88,18 +88,24 @@ var _ = Describe("CC Uploader", func() {
 		return postRequest
 	}
 
-	JustBeforeEach(func() {
+	BeforeEach(func() {
 		httpListenPort = 8182 + GinkgoParallelNode()
+		httpsListenPort = 9192 + GinkgoParallelNode()
 
 		uploaderConfig = config.DefaultUploaderConfig()
 		uploaderConfig.ConsulCluster = consulRunner.URL()
 		uploaderConfig.ListenAddress = fmt.Sprintf("localhost:%d", httpListenPort)
-		uploaderConfig.CCCACert = "../../fixtures/cc_uploader_ca_cn.crt"
-		uploaderConfig.CCClientCert = "../../fixtures/cc_uploader_cn.crt"
-		uploaderConfig.CCClientKey = "../../fixtures/cc_uploader_cn.key"
+		uploaderConfig.CCCACert = filepath.Join("..", "..", "fixtures", "cc_uploader_ca_cn.crt")
+		uploaderConfig.CCClientCert = filepath.Join("..", "..", "fixtures", "cc_uploader_cn.crt")
+		uploaderConfig.CCClientKey = filepath.Join("..", "..", "fixtures", "cc_uploader_cn.key")
 
 		uploaderConfig.ListenAddress = fmt.Sprintf("localhost:%d", httpListenPort)
-		uploaderConfig.MutualTLS = mTLSConfig
+		uploaderConfig.MutualTLS = config.MutualTLS{
+			ListenAddress: fmt.Sprintf("localhost:%d", httpsListenPort),
+			CACert:        filepath.Join("..", "..", "fixtures", "certs", "ca.crt"),
+			ServerCert:    filepath.Join("..", "..", "fixtures", "certs", "server.crt"),
+			ServerKey:     filepath.Join("..", "..", "fixtures", "certs", "server.key"),
+		}
 
 		var err error
 		configFile, err = ioutil.TempFile("", "uploader_config")
@@ -123,120 +129,121 @@ var _ = Describe("CC Uploader", func() {
 		session.Kill().Wait()
 	})
 
-	Describe("mutual TLS", func() {
-		var httpsListenPort int
+	Describe("Uploading a file", func() {
+		var (
+			contentLength     = 100
+			postRequest       *http.Request
+			ccUploaderAddress string
+		)
 
-		BeforeEach(func() {
-			httpsListenPort = 9192 + GinkgoParallelNode()
-			mTLSConfig = config.MutualTLS{
-				ListenAddress: fmt.Sprintf("localhost:%d", httpsListenPort),
-				CACert:        filepath.Join("..", "..", "fixtures", "certs", "ca.crt"),
-				ServerCert:    filepath.Join("..", "..", "fixtures", "certs", "server.crt"),
-				ServerKey:     filepath.Join("..", "..", "fixtures", "certs", "server.key"),
-			}
-			fakeCC = fake_cc.New()
-			fakeCCServer = httptest.NewUnstartedServer(fakeCC)
-			fakeCCServer.Start()
+		JustBeforeEach(func() {
+			emitter := NewEmitter(contentLength)
+			postRequest = dropletUploadRequest(appGuid, emitter, contentLength, ccUploaderAddress)
 		})
 
-		Describe("uploading a file", func() {
-			var contentLength = 100
+		Context("when the HTTP endpoint of the cc-uploader is used", func() {
+			BeforeEach(func() {
+				fakeCC = fake_cc.New()
+				fakeCCServer = httptest.NewUnstartedServer(fakeCC)
+				fakeCCServer.Start()
 
-			It("should upload the file...", func() {
-				emitter := NewEmitter(contentLength)
-				address := fmt.Sprintf("https://localhost:%d", httpsListenPort)
-				postRequest := dropletUploadRequest(appGuid, emitter, contentLength, address)
-				httpClient := cfhttp.NewClient()
-				tlsConfig, err := cfhttp.NewTLSConfig(
+				ccUploaderAddress = fmt.Sprintf("http://localhost:%d", httpListenPort)
+			})
+
+			AfterEach(func() {
+				fakeCCServer.Close()
+			})
+
+			It("should upload the file", func() {
+				resp, err := http.DefaultClient.Do(postRequest)
+				Expect(err).NotTo(HaveOccurred())
+				defer resp.Body.Close()
+
+				Expect(resp.StatusCode).To(Equal(http.StatusCreated))
+				Expect(len(fakeCC.UploadedDroplets[appGuid])).To(Equal(contentLength))
+			})
+		})
+
+		Context("when the HTTPS endpoint of the cc-uploader is used", func() {
+			var httpClient *http.Client
+
+			BeforeEach(func() {
+				ccUploaderAddress = fmt.Sprintf("https://localhost:%d", httpsListenPort)
+				httpClient = cfhttp.NewClient()
+				cellTLSConfig, err := cfhttp.NewTLSConfig(
 					filepath.Join("..", "..", "fixtures", "certs", "client.crt"),
 					filepath.Join("..", "..", "fixtures", "certs", "client.key"),
 					filepath.Join("..", "..", "fixtures", "certs", "ca.crt"),
 				)
 				Expect(err).NotTo(HaveOccurred())
-				httpClient.Transport = &http.Transport{TLSClientConfig: tlsConfig}
-				resp, err := httpClient.Do(postRequest)
-				Expect(err).NotTo(HaveOccurred())
-				defer resp.Body.Close()
-
-				Expect(resp.StatusCode).To(Equal(http.StatusCreated))
-				Expect(len(fakeCC.UploadedDroplets[appGuid])).To(Equal(contentLength))
-			})
-		})
-	})
-
-	Describe("uploading a file", func() {
-		var contentLength = 100
-
-		Context("When the provided callback URI is http", func() {
-			BeforeEach(func() {
-				fakeCC = fake_cc.New()
-				fakeCCServer = httptest.NewUnstartedServer(fakeCC)
-				fakeCCServer.Start()
+				httpClient.Transport = &http.Transport{TLSClientConfig: cellTLSConfig}
 			})
 
-			AfterEach(func() {
-				fakeCCServer.Close()
+			Context("when the CC callback URI is HTTP", func() {
+				BeforeEach(func() {
+					fakeCC = fake_cc.New()
+					fakeCCServer = httptest.NewUnstartedServer(fakeCC)
+					fakeCCServer.Start()
+				})
+
+				AfterEach(func() {
+					fakeCCServer.Close()
+				})
+
+				It("should upload the file using an HTTP client", func() {
+					resp, err := httpClient.Do(postRequest)
+					Expect(err).NotTo(HaveOccurred())
+					defer resp.Body.Close()
+
+					Expect(resp.StatusCode).To(Equal(http.StatusCreated))
+					Expect(len(fakeCC.UploadedDroplets[appGuid])).To(Equal(contentLength))
+				})
 			})
 
-			It("should upload the file using an HTTP client", func() {
-				emitter := NewEmitter(contentLength)
-				address := fmt.Sprintf("http://localhost:%d", httpListenPort)
-				postRequest := dropletUploadRequest(appGuid, emitter, contentLength, address)
-				resp, err := http.DefaultClient.Do(postRequest)
-				Expect(err).NotTo(HaveOccurred())
-				defer resp.Body.Close()
+			Context("when the CC callback URI is HTTPS", func() {
+				BeforeEach(func() {
+					fakeCC = fake_cc.New()
+					fakeCCServer = httptest.NewUnstartedServer(fakeCC)
 
-				Expect(resp.StatusCode).To(Equal(http.StatusCreated))
-				Expect(len(fakeCC.UploadedDroplets[appGuid])).To(Equal(contentLength))
-			})
-		})
+					cert, err := tls.LoadX509KeyPair(uploaderConfig.CCClientCert, uploaderConfig.CCClientKey)
+					if err != nil {
+						log.Fatalln("Unable to load cert", err)
+					}
+					caCert, err := ioutil.ReadFile(uploaderConfig.CCCACert)
+					if err != nil {
+						log.Fatal("Unable to open cert", err)
+					}
 
-		Context("When the provided callback URI is https", func() {
-			BeforeEach(func() {
-				fakeCC = fake_cc.New()
-				fakeCCServer = httptest.NewUnstartedServer(fakeCC)
+					clientCertPool := x509.NewCertPool()
+					clientCertPool.AppendCertsFromPEM(caCert)
+					tlsConfig := &tls.Config{
+						InsecureSkipVerify: false,
+						Certificates:       []tls.Certificate{cert},
+						ClientAuth:         tls.RequireAndVerifyClientCert,
+						ClientCAs:          clientCertPool,
+						RootCAs:            clientCertPool,
+						CipherSuites: []uint16{
+							tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+							tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+						},
+					}
 
-				cert, err := tls.LoadX509KeyPair(uploaderConfig.CCClientCert, uploaderConfig.CCClientKey)
-				if err != nil {
-					log.Fatalln("Unable to load cert", err)
-				}
-				caCert, err := ioutil.ReadFile(uploaderConfig.CCCACert)
-				if err != nil {
-					log.Fatal("Unable to open cert", err)
-				}
+					fakeCCServer.TLS = tlsConfig
+					fakeCCServer.StartTLS()
+				})
 
-				clientCertPool := x509.NewCertPool()
-				clientCertPool.AppendCertsFromPEM(caCert)
-				tlsConfig := &tls.Config{
-					InsecureSkipVerify: false,
-					Certificates:       []tls.Certificate{cert},
-					ClientAuth:         tls.RequireAndVerifyClientCert,
-					ClientCAs:          clientCertPool,
-					RootCAs:            clientCertPool,
-					CipherSuites: []uint16{
-						tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-						tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-					},
-				}
+				AfterEach(func() {
+					fakeCCServer.Close()
+				})
 
-				fakeCCServer.TLS = tlsConfig
-				fakeCCServer.StartTLS()
-			})
+				It("should upload the file using an HTTPS client with mTLS", func() {
+					resp, err := httpClient.Do(postRequest)
+					Expect(err).NotTo(HaveOccurred())
+					defer resp.Body.Close()
 
-			AfterEach(func() {
-				fakeCCServer.Close()
-			})
-
-			It("should upload the file using an HTTPS client with mTLS", func() {
-				emitter := NewEmitter(contentLength)
-				address := fmt.Sprintf("http://localhost:%d", httpListenPort)
-				postRequest := dropletUploadRequest(appGuid, emitter, contentLength, address)
-				resp, err := http.DefaultClient.Do(postRequest)
-				Expect(err).NotTo(HaveOccurred())
-				defer resp.Body.Close()
-
-				Expect(resp.StatusCode).To(Equal(http.StatusCreated))
-				Expect(len(fakeCC.UploadedDroplets[appGuid])).To(Equal(contentLength))
+					Expect(resp.StatusCode).To(Equal(http.StatusCreated))
+					Expect(len(fakeCC.UploadedDroplets[appGuid])).To(Equal(contentLength))
+				})
 			})
 		})
 	})

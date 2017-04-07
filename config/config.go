@@ -2,8 +2,10 @@ package config
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
+	"strings"
 	"time"
 
 	"code.cloudfoundry.org/debugserver"
@@ -75,5 +77,34 @@ func NewUploaderConfig(configPath string) (UploaderConfig, error) {
 		return UploaderConfig{}, err
 	}
 
+	err = uploaderConfig.validate()
+	if err != nil {
+		return UploaderConfig{}, err
+	}
+
 	return uploaderConfig, nil
+}
+
+func (uploaderConfig *UploaderConfig) validate() error {
+	missingRequiredValues := make([]string, 0)
+
+	if uploaderConfig.MutualTLS.ListenAddress == "" {
+		missingRequiredValues = append(missingRequiredValues, "'mutual_tls.listen_addr'")
+	}
+	if uploaderConfig.MutualTLS.CACert == "" {
+		missingRequiredValues = append(missingRequiredValues, "'mutual_tls.ca_cert'")
+	}
+	if uploaderConfig.MutualTLS.ServerCert == "" {
+		missingRequiredValues = append(missingRequiredValues, "'mutual_tls.server_cert'")
+	}
+	if uploaderConfig.MutualTLS.ServerKey == "" {
+		missingRequiredValues = append(missingRequiredValues, "'mutual_tls.server_key'")
+	}
+
+	if len(missingRequiredValues) > 0 {
+		errorMsg := fmt.Sprintf("The following required config values were not provided: %s", strings.Join(missingRequiredValues, ","))
+		return errors.New(errorMsg)
+	}
+
+	return nil
 }
