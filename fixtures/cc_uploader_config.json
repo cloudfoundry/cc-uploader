@@ -9,7 +9,15 @@
   },
   "listen_addr": "listen_addr",
   "job_polling_interval": "5s",
+
   "cc_client_cert": "/path/to/server.cert",
   "cc_client_key": "/path/to/server.key",
-  "cc_ca_cert": "/path/to/server-ca.cert"
+  "cc_ca_cert": "/path/to/server-ca.cert",
+
+  "mutual_tls": {
+    "listen_addr": "mtls_listen_addr",
+    "ca_cert": "ca-cert",
+    "server_cert": "server-cert",
+    "server_key": "server-key"
+  }
 }

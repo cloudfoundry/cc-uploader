@@ -33,6 +33,13 @@ func (d Duration) MarshalJSON() ([]byte, error) {
 	return []byte(fmt.Sprintf(`"%s"`, t.String())), nil
 }
 
+type MutualTLS struct {
+	ListenAddress string `json:"listen_addr"`
+	CACert        string `json:"ca_cert"`
+	ServerCert    string `json:"server_cert"`
+	ServerKey     string `json:"server_key"`
+}
+
 type UploaderConfig struct {
 	ConsulCluster        string                        `json:"consul_cluster"`
 	DropsondePort        int                           `json:"dropsonde_port"`
@@ -43,6 +50,7 @@ type UploaderConfig struct {
 	CCClientCert         string                        `json:"cc_client_cert"`
 	CCClientKey          string                        `json:"cc_client_key"`
 	CCCACert             string                        `json:"cc_ca_cert"`
+	MutualTLS            MutualTLS                     `json:"mutual_tls"`
 }
 
 func DefaultUploaderConfig() UploaderConfig {
