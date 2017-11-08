@@ -121,7 +121,7 @@ var _ = Describe("CC Uploader", func() {
 		session, err = gexec.Start(exec.Command(ccUploaderBinary, args...), GinkgoWriter, GinkgoWriter)
 		Expect(err).NotTo(HaveOccurred())
 
-		Eventually(session).Should(gbytes.Say("cc-uploader.ready"))
+		Eventually(session, 5*time.Second).Should(gbytes.Say("cc-uploader.ready"))
 	})
 
 	AfterEach(func() {
