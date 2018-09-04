@@ -71,8 +71,6 @@ var _ = Describe("Handlers", func() {
 	Describe("UploadDroplet", func() {
 		var (
 			timeClicker chan time.Time
-			startTime   time.Time
-			endTime     time.Time
 		)
 
 		BeforeEach(func() {
@@ -110,9 +108,7 @@ var _ = Describe("Handlers", func() {
 
 			outgoingResponse = httptest.NewRecorder()
 
-			startTime = time.Now()
 			handler.ServeHTTP(outgoingResponse, incomingRequest)
-			endTime = time.Now()
 		})
 
 		Context("uploading the file, when all is well", func() {
