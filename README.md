@@ -23,14 +23,27 @@ CC_APPGUID a valid app guid on that deployed CC
 ## Generating cert fixtures
 
 ```sh
-$ echo "Generating CA"
-$ certstrap --depot-path . init --passphrase '' --common-name cc_uploader_ca_cn
-$ echo "Generating server csr"
-$ certstrap --depot-path . request-cert --passphrase '' --common-name cc_cn --ip 127.0.0.1
-$ echo "Generating server cert"
-$ certstrap --depot-path . sign cc_cn --CA cc_uploader_ca_cn
-$ echo "Generating client csr"
-$ certstrap --depot-path . request-cert --passphrase '' --common-name cc_uploader_cn --ip 127.0.0.1
-$ echo "Generating client cert"
-$ certstrap --depot-path . sign cc_uploader_cn --CA cc_uploader_ca_cn
+echo "Generating CA"
+certstrap --depot-path . init --passphrase '' --common-name cc_uploader_ca_cn
+echo "Generating server csr"
+certstrap --depot-path . request-cert --passphrase '' --common-name cc_cn --ip 127.0.0.1
+echo "Generating server cert"
+certstrap --depot-path . sign cc_cn --CA cc_uploader_ca_cn
+echo "Generating client csr"
+certstrap --depot-path . request-cert --passphrase '' --common-name cc_uploader_cn --ip 127.0.0.1
+echo "Generating client cert"
+certstrap --depot-path . sign cc_uploader_cn --CA cc_uploader_ca_cn
+```
+
+and once you've generated those,
+
+```sh
+cd certs/
+cp ../cc_uploader_ca_cn.crt ca.crt
+certstrap --depot-path . request-cert --passphrase '' --domain '*.localhost,localhost' --ip 127.0.0.1
+mv \*.localhost.csr server.csr
+mv \*.localhost.key server.key
+certstrap --depot-path . sign server --CA ca
+certstrap --depot-path . request-cert --passphrase '' --common-name client --ip 127.0.0.1
+certstrap --depot-path . sign client --CA ca
 ```
