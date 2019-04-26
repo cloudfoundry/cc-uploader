@@ -65,11 +65,14 @@ func main() {
 	registrationRunner := initializeRegistrationRunner(logger, consulClient, uploaderConfig.ListenAddress, clock.NewClock())
 
 	members := grouper.Members{
-		{"cc-uploader", initializeServer(logger, uploaderConfig, false)},
 		{"cc-uploader-tls", initializeServer(logger, uploaderConfig, true)},
 		{"registration-runner", registrationRunner},
 	}
-
+	if !uploaderConfig.DisableNonTLS {
+		members = append(grouper.Members{
+			{ "cc-uploader", initializeServer(logger, uploaderConfig, false) },
+		}, members...)
+	}
 	if uploaderConfig.DebugServerConfig.DebugAddress != "" {
 		members = append(grouper.Members{
 			{"debug-server", debugserver.Runner(uploaderConfig.DebugServerConfig.DebugAddress, reconfigurableSink)},

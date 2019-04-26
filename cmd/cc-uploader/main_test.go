@@ -12,7 +12,6 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"time"
 
@@ -25,8 +24,9 @@ import (
 	"github.com/hashicorp/consul/api"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
+	"os/exec"
+	"github.com/onsi/gomega/gbytes"
 )
 
 type ByteEmitter struct {
@@ -107,6 +107,10 @@ var _ = Describe("CC Uploader", func() {
 			ServerKey:     filepath.Join("..", "..", "fixtures", "certs", "server.key"),
 		}
 
+
+	})
+
+	JustBeforeEach(func() {
 		var err error
 		configFile, err = ioutil.TempFile("", "uploader_config")
 		Expect(err).NotTo(HaveOccurred())
@@ -114,7 +118,6 @@ var _ = Describe("CC Uploader", func() {
 		Expect(err).NotTo(HaveOccurred())
 		err = ioutil.WriteFile(configFile.Name(), configJson, 0644)
 		Expect(err).NotTo(HaveOccurred())
-
 		args := []string{
 			"-configPath", configFile.Name(),
 		}
@@ -161,6 +164,16 @@ var _ = Describe("CC Uploader", func() {
 
 				Expect(resp.StatusCode).To(Equal(http.StatusCreated))
 				Expect(len(fakeCC.UploadedDroplets[appGuid])).To(Equal(contentLength))
+			})
+
+			Context("when config.DisableNonTLS is set to true", func() {
+				BeforeEach(func() {
+					uploaderConfig.DisableNonTLS = true
+				})
+				It("should fail", func() {
+					_, err := http.DefaultClient.Do(postRequest)
+					Expect(err).To(MatchError(ContainSubstring("connect")))
+				})
 			})
 		})
 
