@@ -17,14 +17,10 @@ import (
 	"code.cloudfoundry.org/cc-uploader/config"
 	"code.cloudfoundry.org/cc-uploader/handlers"
 	"code.cloudfoundry.org/cfhttp"
-	"code.cloudfoundry.org/clock"
-	"code.cloudfoundry.org/consuladapter"
 	"code.cloudfoundry.org/debugserver"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerflags"
-	"code.cloudfoundry.org/locket"
 	"github.com/cloudfoundry/dropsonde"
-	"github.com/hashicorp/consul/api"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/http_server"
@@ -57,20 +53,13 @@ func main() {
 	logger, reconfigurableSink := lagerflags.NewFromConfig("cc-uploader", uploaderConfig.LagerConfig)
 
 	initializeDropsonde(logger, uploaderConfig)
-	consulClient, err := consuladapter.NewClientFromUrl(uploaderConfig.ConsulCluster)
-	if err != nil {
-		logger.Fatal("new-client-failed", err)
-	}
-
-	registrationRunner := initializeRegistrationRunner(logger, consulClient, uploaderConfig.ListenAddress, clock.NewClock())
 
 	members := grouper.Members{
 		{"cc-uploader-tls", initializeServer(logger, uploaderConfig, true)},
-		{"registration-runner", registrationRunner},
 	}
 	if !uploaderConfig.DisableNonTLS {
 		members = append(grouper.Members{
-			{ "cc-uploader", initializeServer(logger, uploaderConfig, false) },
+			{"cc-uploader", initializeServer(logger, uploaderConfig, false)},
 		}, members...)
 	}
 	if uploaderConfig.DebugServerConfig.DebugAddress != "" {
@@ -169,25 +158,4 @@ func initializeServer(logger lager.Logger, uploaderConfig config.UploaderConfig,
 		return http_server.NewTLSServer(uploaderConfig.MutualTLS.ListenAddress, ccUploaderHandler, tlsConfig)
 	}
 	return http_server.New(uploaderConfig.ListenAddress, ccUploaderHandler)
-}
-
-func initializeRegistrationRunner(logger lager.Logger, consulClient consuladapter.Client, listenAddress string, clock clock.Clock) ifrit.Runner {
-	_, portString, err := net.SplitHostPort(listenAddress)
-	if err != nil {
-		logger.Fatal("failed-invalid-listen-address", err)
-	}
-	portNum, err := net.LookupPort("tcp", portString)
-	if err != nil {
-		logger.Fatal("failed-invalid-listen-port", err)
-	}
-
-	registration := &api.AgentServiceRegistration{
-		Name: "cc-uploader",
-		Port: portNum,
-		Check: &api.AgentServiceCheck{
-			TTL: "20s",
-		},
-	}
-
-	return locket.NewRegistrationRunner(logger, registration, consulClient, locket.RetryInterval, clock)
 }

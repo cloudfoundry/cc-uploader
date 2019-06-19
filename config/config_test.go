@@ -35,7 +35,6 @@ var _ = Describe("Config", func() {
 		Context("when all values are provided in the config file", func() {
 			BeforeEach(func() {
 				configFileContent = `{
-					"consul_cluster": "consul_cluster",
 					"debug_server_config": {
 						"debug_address": "debug_address"
 					},
@@ -69,7 +68,6 @@ var _ = Describe("Config", func() {
 				Expect(uploaderConfig.LagerConfig.LogLevel).To(Equal("fatal"))
 				Expect(uploaderConfig.ListenAddress).To(Equal("listen_addr"))
 				Expect(uploaderConfig.CCJobPollingInterval).To(Equal(Duration(5 * time.Second)))
-				Expect(uploaderConfig.ConsulCluster).To(Equal("consul_cluster"))
 				Expect(uploaderConfig.DebugServerConfig.DebugAddress).To(Equal("debug_address"))
 				Expect(uploaderConfig.CCClientCert).To(Equal("/path/to/server.cert"))
 				Expect(uploaderConfig.CCClientKey).To(Equal("/path/to/server.key"))

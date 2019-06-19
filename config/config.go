@@ -43,7 +43,6 @@ type MutualTLS struct {
 }
 
 type UploaderConfig struct {
-	ConsulCluster        string                        `json:"consul_cluster"`
 	DisableNonTLS        bool                          `json:"disable_non_tls"`
 	DropsondePort        int                           `json:"dropsonde_port"`
 	ListenAddress        string                        `json:"listen_addr"`

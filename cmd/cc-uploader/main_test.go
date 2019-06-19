@@ -21,7 +21,6 @@ import (
 	"code.cloudfoundry.org/cfhttp"
 	"code.cloudfoundry.org/runtimeschema/cc_messages"
 	"code.cloudfoundry.org/urljoiner"
-	"github.com/hashicorp/consul/api"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
@@ -93,7 +92,6 @@ var _ = Describe("CC Uploader", func() {
 		httpsListenPort = 9192 + GinkgoParallelNode()
 
 		uploaderConfig = config.DefaultUploaderConfig()
-		uploaderConfig.ConsulCluster = consulRunner.URL()
 		uploaderConfig.ListenAddress = fmt.Sprintf("localhost:%d", httpListenPort)
 		uploaderConfig.CCCACert = filepath.Join("..", "..", "fixtures", "cc_uploader_ca_cn.crt")
 		uploaderConfig.CCClientCert = filepath.Join("..", "..", "fixtures", "cc_uploader_cn.crt")
@@ -258,33 +256,6 @@ var _ = Describe("CC Uploader", func() {
 					Expect(len(fakeCC.UploadedDroplets[appGuid])).To(Equal(contentLength))
 				})
 			})
-		})
-	})
-
-	Describe("Initialization", func() {
-		It("registers itself with consul", func() {
-			services, err := consulRunner.NewClient().Agent().Services()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(services).Should(HaveKeyWithValue("cc-uploader",
-				&api.AgentService{
-					Service: "cc-uploader",
-					ID:      "cc-uploader",
-					Port:    httpListenPort,
-				}))
-		})
-
-		It("registers a TTL healthcheck", func() {
-			checks, err := consulRunner.NewClient().Agent().Checks()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(checks).Should(HaveKeyWithValue("service:cc-uploader",
-				&api.AgentCheck{
-					Node:        "0",
-					CheckID:     "service:cc-uploader",
-					Name:        "Service 'cc-uploader' check",
-					Status:      "passing",
-					ServiceID:   "cc-uploader",
-					ServiceName: "cc-uploader",
-				}))
 		})
 	})
 })
