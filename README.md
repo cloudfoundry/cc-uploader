@@ -22,28 +22,31 @@ CC_APPGUID a valid app guid on that deployed CC
 
 ## Generating cert fixtures
 
+First generate certs for mTLS connection between cc_uploader (client) and cloud_controller (server)
 ```sh
+cd fixtures
 echo "Generating CA"
-certstrap --depot-path . init --passphrase '' --common-name cc_uploader_ca_cn
+certstrap --depot-path . init --passphrase '' --common-name cc_uploader_ca_cn --expires "10 years"
 echo "Generating server csr"
-certstrap --depot-path . request-cert --passphrase '' --common-name cc_cn --ip 127.0.0.1
+certstrap --depot-path . request-cert --passphrase '' --common-name cc_cn --domain cc_cn  --ip 127.0.0.1
 echo "Generating server cert"
-certstrap --depot-path . sign cc_cn --CA cc_uploader_ca_cn
+certstrap --depot-path . sign cc_cn --CA cc_uploader_ca_cn --expires "10 years"
 echo "Generating client csr"
-certstrap --depot-path . request-cert --passphrase '' --common-name cc_uploader_cn --ip 127.0.0.1
+certstrap --depot-path . request-cert --passphrase '' --common-name cc_uploader_cn --domain cc_uploader_cn --ip 127.0.0.1
 echo "Generating client cert"
-certstrap --depot-path . sign cc_uploader_cn --CA cc_uploader_ca_cn
+certstrap --depot-path . sign cc_uploader_cn --CA cc_uploader_ca_cn --expires "10 years"
 ```
 
-and once you've generated those,
+and once you've generated those, generate certs mTLS connection between the Diego cell (client) and cc_uploader (server)
 
 ```sh
 cd certs/
 cp ../cc_uploader_ca_cn.crt ca.crt
+cp ../cc_uploader_ca_cn.key ca.key
 certstrap --depot-path . request-cert --passphrase '' --domain '*.localhost,localhost' --ip 127.0.0.1
-mv \*.localhost.csr server.csr
-mv \*.localhost.key server.key
-certstrap --depot-path . sign server --CA ca
-certstrap --depot-path . request-cert --passphrase '' --common-name client --ip 127.0.0.1
-certstrap --depot-path . sign client --CA ca
+mv \_.localhost.csr server.csr
+mv \_.localhost.key server.key
+certstrap --depot-path . sign server --CA ca --expires "10 years"
+certstrap --depot-path . request-cert --passphrase '' --common-name client --domain client --ip 127.0.0.1
+certstrap --depot-path . sign client --CA ca --expires "10 years"
 ```
