@@ -1,8 +1,8 @@
 cloud.google.com/go v0.26.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 code.cloudfoundry.org/bbs v0.0.0-20201203185820-4070ad0e44b1 h1:/PuWXB5q5wywcfcsretR9/RqTlJtwsXbCbmR+Onryzs=
 code.cloudfoundry.org/bbs v0.0.0-20201203185820-4070ad0e44b1/go.mod h1:XKlGVVXFi5EcHHMPzw3xgONK9PeEZuUbIC43XNwxD10=
-code.cloudfoundry.org/cc-uploader v0.0.0-20200908231621-d73743ace47e h1:7ucCD6BAyYqZucAVsc/1Kpa36Mf5f4WEZA5AA7pBT1Q=
-code.cloudfoundry.org/cc-uploader v0.0.0-20200908231621-d73743ace47e/go.mod h1:R+zWkt/GXTmPRXlmhisH0WX4IBPjQywDGprK9pk9ypU=
+code.cloudfoundry.org/cc-uploader v0.0.0-20210224232449-498862f060c7 h1:RV6vkdI8EnCWFq3YvcLEnAZCwYkLjQ2pasvIJ3qyTc4=
+code.cloudfoundry.org/cc-uploader v0.0.0-20210224232449-498862f060c7/go.mod h1:R+zWkt/GXTmPRXlmhisH0WX4IBPjQywDGprK9pk9ypU=
 code.cloudfoundry.org/cfhttp v2.0.0+incompatible h1:Gk1oNYalXmkebrG9kgUtZ9+FPjQGnqZtS457RP2gWhc=
 code.cloudfoundry.org/cfhttp v2.0.0+incompatible/go.mod h1:kwYQ8kChWl4AuUJG3vKtp1po2B91S7XoUWhoKElabmA=
 code.cloudfoundry.org/cfhttp/v2 v2.0.0 h1:4+mLfyzm84gUpJnCT68BLPUypGgvUsYq29QKaSotTz4=

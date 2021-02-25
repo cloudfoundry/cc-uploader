@@ -1,10 +1,10 @@
-module github.com/cloudfoundry/cc-uploader/cmd/cc-uploader
+module code.cloudfoundry.org/cc-uploader/cmd/cc-uploader
 
 go 1.16
 
 require (
 	code.cloudfoundry.org/bbs v0.0.0-20201203185820-4070ad0e44b1 // indirect
-	code.cloudfoundry.org/cc-uploader v0.0.0-20200908231621-d73743ace47e
+	code.cloudfoundry.org/cc-uploader v0.0.0-20210224232449-498862f060c7
 	code.cloudfoundry.org/cfhttp v2.0.0+incompatible
 	code.cloudfoundry.org/cfhttp/v2 v2.0.0 // indirect
 	code.cloudfoundry.org/clock v1.0.0 // indirect
