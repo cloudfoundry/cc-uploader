@@ -25,7 +25,7 @@ func TestCCUploader(t *testing.T) {
 
 var _ = SynchronizedBeforeSuite(func() []byte {
 
-	ccUploaderPath, err := gexec.Build("code.cloudfoundry.org/cc-uploader/cmd/cc-uploader")
+	ccUploaderPath, err := gexec.Build("../cc-uploader")
 	Expect(err).NotTo(HaveOccurred())
 	return []byte(ccUploaderPath)
 }, func(ccUploaderPath []byte) {
