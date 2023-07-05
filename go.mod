@@ -33,8 +33,9 @@ require (
 	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d // indirect
 	github.com/onsi/ginkgo v1.15.0
 	github.com/onsi/gomega v1.10.5
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/tedsuo/ifrit v0.0.0-20160623190214-6711154296c2
 	github.com/tedsuo/rata v1.0.0
-	google.golang.org/grpc v1.53.0 // indirect
+	google.golang.org/grpc v1.36.0 // indirect
 	launchpad.net/gocheck v0.0.0-20140225173054-000000000087 // indirect
 )
