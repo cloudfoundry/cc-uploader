@@ -14,8 +14,6 @@ import (
 	"code.cloudfoundry.org/cc-uploader/handlers"
 	"code.cloudfoundry.org/lager/v3/lagertest"
 	"code.cloudfoundry.org/runtimeschema/cc_messages"
-	"code.cloudfoundry.org/urljoiner"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
@@ -282,9 +280,9 @@ var _ = Describe("Handlers", func() {
 })
 
 func pollingResponseBody(jobGuid, status string, baseUrl string) string {
-	url := urljoiner.Join("/v2/jobs", jobGuid)
+	url := "/v2/jobs/" + jobGuid
 	if baseUrl != "" {
-		url = urljoiner.Join(baseUrl, url)
+		url = baseUrl + url
 	}
 	return fmt.Sprintf(`
 				{
@@ -301,7 +299,7 @@ func pollingResponseBody(jobGuid, status string, baseUrl string) string {
 
 func verifyPollingRequest(jobGuid, status string, timeClicker chan time.Time) http.HandlerFunc {
 	return ghttp.CombineHandlers(
-		ghttp.VerifyRequest("GET", urljoiner.Join("/v2/jobs/", jobGuid)),
+		ghttp.VerifyRequest("GET", "/v2/jobs/"+jobGuid),
 		ghttp.RespondWith(http.StatusOK, pollingResponseBody(jobGuid, status, "")),
 		func(w http.ResponseWriter, r *http.Request) {
 			timeClicker <- time.Now()
