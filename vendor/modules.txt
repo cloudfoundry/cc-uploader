@@ -169,9 +169,8 @@ github.com/tedsuo/rata
 golang.org/x/net/html
 golang.org/x/net/html/atom
 golang.org/x/net/html/charset
-# golang.org/x/sys v0.0.0-20210112080510-489259a85091
-## explicit; go 1.12
-golang.org/x/sys/internal/unsafeheader
+# golang.org/x/sys v0.1.0
+## explicit; go 1.17
 golang.org/x/sys/unix
 # golang.org/x/text v0.3.3
 ## explicit; go 1.11
