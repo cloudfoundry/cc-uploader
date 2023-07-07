@@ -20,7 +20,6 @@ import (
 	"code.cloudfoundry.org/cc-uploader/config"
 	"code.cloudfoundry.org/cfhttp"
 	"code.cloudfoundry.org/runtimeschema/cc_messages"
-	"code.cloudfoundry.org/urljoiner"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -64,7 +63,7 @@ var _ = Describe("CC Uploader", func() {
 	dropletUploadRequest := func(appGuid string, body io.Reader, contentLength int, address string) *http.Request {
 		ccUrl, err := url.Parse(fakeCCServer.URL)
 		Expect(err).NotTo(HaveOccurred())
-		ccUrl.Path = urljoiner.Join("staging", "droplets", appGuid, "upload")
+		ccUrl.Path = "staging/droplets/" + appGuid + "/upload"
 		v := url.Values{"async": []string{"true"}}
 		ccUrl.RawQuery = v.Encode()
 
@@ -73,8 +72,7 @@ var _ = Describe("CC Uploader", func() {
 
 		path, err := route.CreatePath(map[string]string{"guid": appGuid})
 		Expect(err).NotTo(HaveOccurred())
-
-		u, err := url.Parse(urljoiner.Join(address, path))
+		u, err := url.Parse(address + path)
 		Expect(err).NotTo(HaveOccurred())
 		v = url.Values{cc_messages.CcDropletUploadUriKey: []string{ccUrl.String()}}
 		u.RawQuery = v.Encode()

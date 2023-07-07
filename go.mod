@@ -7,7 +7,6 @@ require (
 	code.cloudfoundry.org/debugserver v0.0.0-20230612151301-d597b20f28ce
 	code.cloudfoundry.org/lager/v3 v3.0.2
 	code.cloudfoundry.org/runtimeschema v0.0.0-20230323223330-5366865eed76
-	code.cloudfoundry.org/urljoiner v0.0.0-20170223060717-5cabba6c0a50
 	github.com/cloudfoundry/dropsonde v1.1.0
 	github.com/onsi/ginkgo/v2 v2.11.0
 	github.com/onsi/gomega v1.27.8

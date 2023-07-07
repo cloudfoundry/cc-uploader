@@ -607,8 +607,6 @@ code.cloudfoundry.org/locket v0.0.0-20221110203340-76a930295e59 h1:oglZYmMS7wqvH
 code.cloudfoundry.org/runtimeschema v0.0.0-20230323223330-5366865eed76 h1:eUDbHh3nW7UAIsYdoShW/KccCbNUshYPlP4FcBd4sNM=
 code.cloudfoundry.org/runtimeschema v0.0.0-20230323223330-5366865eed76/go.mod h1:Fk8Yr7+89rZ+FLaG4zNzqqvTrOYyYY7P4QeeiCv+fnk=
 code.cloudfoundry.org/tlsconfig v0.0.0-20230320190829-8f91c367795b h1:FjTuGbVBKeaSyvW7WEATlIFCyb0uCpaiuTSaMQXjUyY=
-code.cloudfoundry.org/urljoiner v0.0.0-20170223060717-5cabba6c0a50 h1:y+DtLO/eX/9NZjGGHntWs1bNG6uxdql8SqrHzu6VH3Q=
-code.cloudfoundry.org/urljoiner v0.0.0-20170223060717-5cabba6c0a50/go.mod h1:GyubIUn2eHGSlpIqJhGKBKicAe6CUV/pQJosfNEHdo4=
 dmitri.shuralyov.com/gpu/mtl v0.0.0-20190408044501-666a987793e9/go.mod h1:H6x//7gZCb22OMCxBHrMx7a5I7Hp++hsVxbQ4BYO7hU=
 gioui.org v0.0.0-20210308172011-57750fc8a0a6/go.mod h1:RSH6KIUZ0p2xy5zHDxgAM4zumjgTw83q2ge/PI+yyw8=
 git.sr.ht/~sbinet/gg v0.3.1/go.mod h1:KGYtlADtqsqANL9ueOFkWymvzUvLMQllU5Ixo+8v3pc=
