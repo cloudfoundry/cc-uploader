@@ -21,11 +21,11 @@ import (
 	"code.cloudfoundry.org/cfhttp"
 	"code.cloudfoundry.org/runtimeschema/cc_messages"
 	"code.cloudfoundry.org/urljoiner"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"os/exec"
-	"github.com/onsi/gomega/gbytes"
 )
 
 type ByteEmitter struct {
@@ -88,8 +88,8 @@ var _ = Describe("CC Uploader", func() {
 	}
 
 	BeforeEach(func() {
-		httpListenPort = 8182 + GinkgoParallelNode()
-		httpsListenPort = 9192 + GinkgoParallelNode()
+		httpListenPort = 8182 + GinkgoParallelProcess()
+		httpsListenPort = 9192 + GinkgoParallelProcess()
 
 		uploaderConfig = config.DefaultUploaderConfig()
 		uploaderConfig.ListenAddress = fmt.Sprintf("localhost:%d", httpListenPort)
@@ -104,7 +104,6 @@ var _ = Describe("CC Uploader", func() {
 			ServerCert:    filepath.Join("..", "..", "fixtures", "certs", "server.crt"),
 			ServerKey:     filepath.Join("..", "..", "fixtures", "certs", "server.key"),
 		}
-
 
 	})
 

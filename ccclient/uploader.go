@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/v3"
 )
 
 const MAX_UPLOAD_RETRIES = 3

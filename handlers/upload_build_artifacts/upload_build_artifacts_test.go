@@ -12,9 +12,9 @@ import (
 	"code.cloudfoundry.org/cc-uploader/ccclient/fake_ccclient"
 	"code.cloudfoundry.org/cc-uploader/handlers/test_helpers"
 	"code.cloudfoundry.org/cc-uploader/handlers/upload_build_artifacts"
-	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/v3"
 	"code.cloudfoundry.org/runtimeschema/cc_messages"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 

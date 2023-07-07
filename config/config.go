@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/debugserver"
-	"code.cloudfoundry.org/lager/lagerflags"
+	"code.cloudfoundry.org/lager/v3/lagerflags"
 )
 
 type Duration time.Duration

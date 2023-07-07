@@ -5,6 +5,10 @@
 A helper function for running a pre-configured
 [pprof](http://golang.org/pkg/net/http/pprof/) server in go.
 
+## Reporting issues and requesting features
+
+Please report all issues and feature requests in [cloudfoundry/diego-release](https://github.com/cloudfoundry/diego-release/issues).
+
 ## Endpoints
 
 - `/log-level`
@@ -23,6 +27,18 @@ A helper function for running a pre-configured
 
  Responds with the pprof-formatted CPU profile.
 
+- `/debug/pprof/heap`
+
+Responds with the pprof-formatted heap profile.
+
+- `/debug/pprof/block`
+
+Responds with the pprof-formatted goroutine blocking profile.
+
+- `/debug/pprof/trace?seconds=n`
+
+Responds with the pprof-formatted execution trace for n seconds.
+
 - `/debug/pprof/symbol`
 
  Looks up the program counters listed in the request,
@@ -35,6 +51,14 @@ A helper function for running a pre-configured
  an average of one blocking event per rate nanoseconds spent blocked.
  To include every blocking event in the profile, pass rate = 1.
  To turn off profiling entirely, pass rate <= 0.
+ 
+- `/debug/pprof/goroutine?debug=2`
+
+ Responds with the full goroutine stack dump.
+
+- `/debug/pprof/<tracename>`
+
+ Responds with the trace specified by `tracename`. See: https://golang.org/pkg/net/http/pprof/#Index
 
 ## Remote debugging
 
