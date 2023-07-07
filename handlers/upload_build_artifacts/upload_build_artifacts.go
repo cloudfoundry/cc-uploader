@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/cc-uploader/ccclient"
-	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/v3"
 	"code.cloudfoundry.org/runtimeschema/cc_messages"
 )
 

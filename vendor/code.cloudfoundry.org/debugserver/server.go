@@ -8,7 +8,7 @@ import (
 	"runtime"
 	"strconv"
 
-	"code.cloudfoundry.org/lager"
+	lager "code.cloudfoundry.org/lager/v3"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/http_server"
 )
@@ -55,6 +55,7 @@ func Run(address string, sink *lager.ReconfigurableSink) (ifrit.Process, error) 
 func Handler(sink *lager.ReconfigurableSink) http.Handler {
 	mux := http.NewServeMux()
 	mux.Handle("/debug/pprof/", http.HandlerFunc(pprof.Index))
+	mux.Handle("/debug/pprof/trace", http.HandlerFunc(pprof.Trace))
 	mux.Handle("/debug/pprof/cmdline", http.HandlerFunc(pprof.Cmdline))
 	mux.Handle("/debug/pprof/profile", http.HandlerFunc(pprof.Profile))
 	mux.Handle("/debug/pprof/symbol", http.HandlerFunc(pprof.Symbol))

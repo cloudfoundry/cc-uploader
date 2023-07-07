@@ -2,13 +2,13 @@ package fake_cc
 
 import (
 	"fmt"
+	"github.com/onsi/ginkgo/v2"
 	"io/ioutil"
 	"net/http"
 	"regexp"
 	"sync"
 
 	"code.cloudfoundry.org/runtimeschema/cc_messages"
-	"github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
@@ -78,7 +78,7 @@ func (f *FakeCC) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(ginkgo.GinkgoWriter, "[FAKE CC] Handling request: %s\n", r.URL.Path)
 
 	endpoints := map[string]func(http.ResponseWriter, *http.Request){
-		".*": f.handleDropletUploadRequest,
+		".*":                          f.handleDropletUploadRequest,
 		"/staging/droplets/.*/upload": f.handleDropletUploadRequest,
 	}
 
