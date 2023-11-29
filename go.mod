@@ -8,7 +8,7 @@ require (
 	code.cloudfoundry.org/lager/v3 v3.0.2
 	code.cloudfoundry.org/runtimeschema v0.0.0-20230323223330-5366865eed76
 	github.com/cloudfoundry/dropsonde v1.1.0
-	github.com/onsi/ginkgo/v2 v2.13.1
+	github.com/onsi/ginkgo/v2 v2.13.2
 	github.com/onsi/gomega v1.30.0
 	github.com/tedsuo/ifrit v0.0.0-20230516164442-7862c310ad26
 	github.com/tedsuo/rata v1.0.0
