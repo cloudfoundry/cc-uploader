@@ -26,6 +26,7 @@ func NewUploader(logger lager.Logger, httpClient *http.Client) Uploader {
 }
 
 const contentMD5Header = "Content-MD5"
+const contentDigestHeader = "Content-Digest"
 
 func (u *uploader) Upload(uploadURL *url.URL, filename string, r *http.Request, cancelChan <-chan struct{}) (*http.Response, error) {
 	if r.ContentLength <= 0 {
@@ -39,6 +40,7 @@ func (u *uploader) Upload(uploadURL *url.URL, filename string, r *http.Request, 
 	}
 
 	uploadReq.Header.Set(contentMD5Header, r.Header.Get(contentMD5Header))
+	uploadReq.Header.Set(contentDigestHeader, r.Header.Get(contentDigestHeader))
 	uploadReq.URL = uploadURL
 
 	var rsp *http.Response

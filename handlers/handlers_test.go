@@ -47,6 +47,7 @@ var _ = Describe("Handlers", func() {
 		incomingRequest, err = http.NewRequest("POST", "", buffer)
 		Expect(err).NotTo(HaveOccurred())
 		incomingRequest.Header.Set("Content-MD5", "the-md5")
+		incomingRequest.Header.Set("Content-Digest", "the-digest")
 
 		fakeCloudController = ghttp.NewServer()
 
@@ -126,6 +127,10 @@ var _ = Describe("Handlers", func() {
 
 			It("forwards the content-md5 header", func() {
 				Expect(uploadedHeaders.Get("Content-MD5")).To(Equal("the-md5"))
+			})
+
+			It("forwards the content-digest header", func() {
+				Expect(uploadedHeaders.Get("Content-Digest")).To(Equal("the-digest"))
 			})
 
 			It("uploads the correct file", func() {
@@ -242,6 +247,10 @@ var _ = Describe("Handlers", func() {
 
 			It("forwards the content-md5 header", func() {
 				Expect(uploadedHeaders.Get("Content-MD5")).To(Equal("the-md5"))
+			})
+
+			It("forwards the content-digest header", func() {
+				Expect(uploadedHeaders.Get("Content-Digest")).To(Equal("the-digest"))
 			})
 		})
 
