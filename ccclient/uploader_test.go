@@ -88,6 +88,12 @@ var _ = Describe("Uploader", func() {
 					Expect(uploadRequest.Header.Get("Content-MD5")).To(Equal("the-md5"))
 				})
 
+				It("Forwards Content-Digest header onto the upload request", func() {
+					var uploadRequest *http.Request
+					Eventually(uploadRequestChan).Should(Receive(&uploadRequest))
+					Expect(uploadRequest.Header.Get("Content-Digest")).To(Equal("the-digest"))
+				})
+
 				Context("When the upload URL has basic auth credentials", func() {
 					BeforeEach(func() {
 						uploadURL.User = url.UserPassword("bob", "cobb")
@@ -218,6 +224,7 @@ func createValidRequest() *http.Request {
 	Expect(err).NotTo(HaveOccurred())
 
 	request.Header.Set("Content-MD5", "the-md5")
+	request.Header.Set("Content-Digest", "the-digest")
 	request.Body = ioutil.NopCloser(bytes.NewBufferString(""))
 
 	fmt.Fprintf(GinkgoWriter, "Content-length %d\n", request.ContentLength)
