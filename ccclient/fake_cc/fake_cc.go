@@ -2,11 +2,12 @@ package fake_cc
 
 import (
 	"fmt"
-	"github.com/onsi/ginkgo/v2"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"regexp"
 	"sync"
+
+	"github.com/onsi/ginkgo/v2"
 
 	"code.cloudfoundry.org/runtimeschema/cc_messages"
 	. "github.com/onsi/gomega"
@@ -110,7 +111,7 @@ func (f *FakeCC) handleDropletUploadRequest(w http.ResponseWriter, r *http.Reque
 	file, _, err := r.FormFile(key)
 	Expect(err).NotTo(HaveOccurred())
 
-	uploadedBytes, err := ioutil.ReadAll(file)
+	uploadedBytes, err := io.ReadAll(file)
 	Expect(err).NotTo(HaveOccurred())
 
 	re := regexp.MustCompile("/staging/droplets/(.*)/upload")

@@ -1,7 +1,6 @@
 package config_test
 
 import (
-	"io/ioutil"
 	"os"
 	"time"
 
@@ -19,7 +18,7 @@ var _ = Describe("Config", func() {
 
 	JustBeforeEach(func() {
 		var err error
-		configFile, err = ioutil.TempFile("", "config.json")
+		configFile, err = os.CreateTemp("", "config.json")
 		Expect(err).NotTo(HaveOccurred())
 		_, err = configFile.Write([]byte(configFileContent))
 		Expect(err).NotTo(HaveOccurred())

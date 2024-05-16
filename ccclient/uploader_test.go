@@ -3,7 +3,7 @@ package ccclient_test
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -225,7 +225,7 @@ func createValidRequest() *http.Request {
 
 	request.Header.Set("Content-MD5", "the-md5")
 	request.Header.Set("Content-Digest", "the-digest")
-	request.Body = ioutil.NopCloser(bytes.NewBufferString(""))
+	request.Body = io.NopCloser(bytes.NewBufferString(""))
 
 	fmt.Fprintf(GinkgoWriter, "Content-length %d\n", request.ContentLength)
 
@@ -233,5 +233,5 @@ func createValidRequest() *http.Request {
 }
 
 func responseWithCode(code int) *http.Response {
-	return &http.Response{StatusCode: code, Body: ioutil.NopCloser(bytes.NewBufferString(""))}
+	return &http.Response{StatusCode: code, Body: io.NopCloser(bytes.NewBufferString(""))}
 }
