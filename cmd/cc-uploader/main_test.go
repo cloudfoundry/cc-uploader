@@ -12,19 +12,20 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"time"
 
-	"code.cloudfoundry.org/cc-uploader"
+	ccuploader "code.cloudfoundry.org/cc-uploader"
 	"code.cloudfoundry.org/cc-uploader/ccclient/fake_cc"
 	"code.cloudfoundry.org/cc-uploader/config"
-	"code.cloudfoundry.org/cfhttp"
+	"code.cloudfoundry.org/cfhttp/v2"
 	"code.cloudfoundry.org/runtimeschema/cc_messages"
+	"code.cloudfoundry.org/tlsconfig"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
-	"os/exec"
 )
 
 type ByteEmitter struct {
@@ -177,14 +178,18 @@ var _ = Describe("CC Uploader", func() {
 
 			BeforeEach(func() {
 				ccUploaderAddress = fmt.Sprintf("https://localhost:%d", httpsListenPort)
-				httpClient = cfhttp.NewClient()
-				cellTLSConfig, err := cfhttp.NewTLSConfig(
-					filepath.Join("..", "..", "fixtures", "certs", "client.crt"),
-					filepath.Join("..", "..", "fixtures", "certs", "client.key"),
-					filepath.Join("..", "..", "fixtures", "certs", "ca.crt"),
-				)
+
+				clientCertFilePath := filepath.Join("..", "..", "fixtures", "certs", "client.crt")
+				clientKeyFilePath := filepath.Join("..", "..", "fixtures", "certs", "client.key")
+				clientCAFilePath := filepath.Join("..", "..", "fixtures", "certs", "ca.crt")
+
+				clientTlSConfig, err := tlsconfig.Build(
+					tlsconfig.WithIdentityFromFile(clientCertFilePath, clientKeyFilePath),
+				).Client(tlsconfig.WithAuthorityFromFile(clientCAFilePath))
+
 				Expect(err).NotTo(HaveOccurred())
-				httpClient.Transport = &http.Transport{TLSClientConfig: cellTLSConfig}
+
+				httpClient = cfhttp.NewClient(cfhttp.WithTLSConfig(clientTlSConfig))
 			})
 
 			Context("when the CC callback URI is HTTP", func() {
