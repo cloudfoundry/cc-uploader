@@ -2,7 +2,7 @@ package ccclient
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -97,7 +97,7 @@ func (u *uploader) do(req *http.Request, cancelChan <-chan struct{}) (*http.Resp
 		return rsp, nil
 	}
 
-	respBody, _ := ioutil.ReadAll(rsp.Body)
+	respBody, _ := io.ReadAll(rsp.Body)
 	rsp.Body.Close()
 	return rsp, fmt.Errorf("status code: %d\n%s", rsp.StatusCode, string(respBody))
 }

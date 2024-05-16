@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strings"
 	"time"
 
@@ -65,7 +65,7 @@ func DefaultUploaderConfig() UploaderConfig {
 }
 
 func NewUploaderConfig(configPath string) (UploaderConfig, error) {
-	configFile, err := ioutil.ReadFile(configPath)
+	configFile, err := os.ReadFile(configPath)
 	if err != nil {
 		return UploaderConfig{}, err
 	}

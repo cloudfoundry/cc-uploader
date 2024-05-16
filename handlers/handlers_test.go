@@ -3,7 +3,7 @@ package handlers_test
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -83,7 +83,7 @@ var _ = Describe("Handlers", func() {
 					uploadedHeaders = r.Header
 					file, fileHeader, err := r.FormFile(ccclient.FormField)
 					Expect(err).NotTo(HaveOccurred())
-					uploadedBytes, err = ioutil.ReadAll(file)
+					uploadedBytes, err = io.ReadAll(file)
 					Expect(err).NotTo(HaveOccurred())
 					uploadedFileName = fileHeader.Filename
 					Expect(r.ContentLength).To(BeNumerically(">", len(uploadedBytes)))
@@ -192,7 +192,7 @@ var _ = Describe("Handlers", func() {
 			It("responds with the status code from the CC request", func() {
 				Expect(outgoingResponse.Code).To(Equal(http.StatusForbidden))
 
-				data, err := ioutil.ReadAll(outgoingResponse.Body)
+				data, err := io.ReadAll(outgoingResponse.Body)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(string(data)).To(ContainSubstring(strconv.Itoa(http.StatusForbidden)))
 			})
@@ -210,7 +210,7 @@ var _ = Describe("Handlers", func() {
 					uploadedHeaders = r.Header
 					file, fileHeader, err := r.FormFile(ccclient.FormField)
 					Expect(err).NotTo(HaveOccurred())
-					uploadedBytes, err = ioutil.ReadAll(file)
+					uploadedBytes, err = io.ReadAll(file)
 					Expect(err).NotTo(HaveOccurred())
 					uploadedFileName = fileHeader.Filename
 					Expect(r.ContentLength).To(BeNumerically(">", len(uploadedBytes)))
@@ -280,7 +280,7 @@ var _ = Describe("Handlers", func() {
 			It("responds with the status code from the CC request", func() {
 				Expect(outgoingResponse.Code).To(Equal(http.StatusForbidden))
 
-				data, err := ioutil.ReadAll(outgoingResponse.Body)
+				data, err := io.ReadAll(outgoingResponse.Body)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(string(data)).To(ContainSubstring(strconv.Itoa(http.StatusForbidden)))
 			})

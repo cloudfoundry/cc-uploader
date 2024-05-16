@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -108,11 +107,11 @@ var _ = Describe("CC Uploader", func() {
 
 	JustBeforeEach(func() {
 		var err error
-		configFile, err = ioutil.TempFile("", "uploader_config")
+		configFile, err = os.CreateTemp("", "uploader_config")
 		Expect(err).NotTo(HaveOccurred())
 		configJson, err := json.Marshal(uploaderConfig)
 		Expect(err).NotTo(HaveOccurred())
-		err = ioutil.WriteFile(configFile.Name(), configJson, 0644)
+		err = os.WriteFile(configFile.Name(), configJson, 0644)
 		Expect(err).NotTo(HaveOccurred())
 		args := []string{
 			"-configPath", configFile.Name(),
@@ -222,7 +221,7 @@ var _ = Describe("CC Uploader", func() {
 					if err != nil {
 						log.Fatalln("Unable to load cert", err)
 					}
-					caCert, err := ioutil.ReadFile(uploaderConfig.CCCACert)
+					caCert, err := os.ReadFile(uploaderConfig.CCCACert)
 					if err != nil {
 						log.Fatal("Unable to open cert", err)
 					}
