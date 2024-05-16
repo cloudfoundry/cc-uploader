@@ -52,12 +52,12 @@ func (request ActualLRPsRequest) MarshalJSON() ([]byte, error) {
 	return json.Marshal(internalRequest)
 }
 
-// DEPRECATED
+// Deprecated: use the ActualLRPInstances API instead
 func (request *ActualLRPGroupsRequest) Validate() error {
 	return nil
 }
 
-// DEPRECATED
+// Deprecated: use the ActualLRPInstances API instead
 func (request *ActualLRPGroupsByProcessGuidRequest) Validate() error {
 	var validationError ValidationError
 
@@ -72,7 +72,7 @@ func (request *ActualLRPGroupsByProcessGuidRequest) Validate() error {
 	return nil
 }
 
-// DEPRECATED
+// Deprecated: use the ActualLRPInstances API instead
 func (request *ActualLRPGroupByProcessGuidAndIndexRequest) Validate() error {
 	var validationError ValidationError
 
@@ -155,6 +155,17 @@ func (request *StartActualLRPRequest) Validate() error {
 	}
 
 	return nil
+}
+
+func (request *StartActualLRPRequest) SetRoutable(routable bool) {
+	request.OptionalRoutable = &StartActualLRPRequest_Routable{
+		Routable: routable,
+	}
+}
+
+func (request *StartActualLRPRequest) RoutableExists() bool {
+	_, ok := request.GetOptionalRoutable().(*StartActualLRPRequest_Routable)
+	return ok
 }
 
 func (request *CrashActualLRPRequest) Validate() error {

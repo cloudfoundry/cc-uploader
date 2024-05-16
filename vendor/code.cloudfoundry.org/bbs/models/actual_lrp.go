@@ -27,7 +27,7 @@ var ActualLRPStates = []string{
 	ActualLRPStateCrashed,
 }
 
-// DEPRECATED
+// Deprecated: use the ActualLRPInstances API instead
 type ActualLRPChange struct {
 	Before *ActualLRPGroup
 	After  *ActualLRPGroup
@@ -144,6 +144,17 @@ func (actual ActualLRP) ShouldRestartCrash(now time.Time, calc RestartCalculator
 	return calc.ShouldRestart(now.UnixNano(), actual.Since, actual.CrashCount)
 }
 
+func (actual *ActualLRP) SetRoutable(routable bool) {
+	actual.OptionalRoutable = &ActualLRP_Routable{
+		Routable: routable,
+	}
+}
+
+func (actual *ActualLRP) RoutableExists() bool {
+	_, ok := actual.GetOptionalRoutable().(*ActualLRP_Routable)
+	return ok
+}
+
 func (before ActualLRP) AllowsTransitionTo(lrpKey *ActualLRPKey, instanceKey *ActualLRPInstanceKey, newState string) bool {
 	if !before.ActualLRPKey.Equal(lrpKey) {
 		return false
@@ -191,21 +202,21 @@ func (d ActualLRP_Presence) MarshalJSON() ([]byte, error) {
 	return json.Marshal(d.String())
 }
 
-// DEPRECATED
+// Deprecated: use the ActualLRPInstances API instead
 func NewRunningActualLRPGroup(actualLRP *ActualLRP) *ActualLRPGroup {
 	return &ActualLRPGroup{
 		Instance: actualLRP,
 	}
 }
 
-// DEPRECATED
+// Deprecated: use the ActualLRPInstances API instead
 func NewEvacuatingActualLRPGroup(actualLRP *ActualLRP) *ActualLRPGroup {
 	return &ActualLRPGroup{
 		Evacuating: actualLRP,
 	}
 }
 
-// DEPRECATED
+// Deprecated: use the ActualLRPInstances API instead
 func (group ActualLRPGroup) Resolve() (*ActualLRP, bool, error) {
 	switch {
 	case group.Instance == nil && group.Evacuating == nil:
@@ -260,10 +271,11 @@ func (actualLRPInfo *ActualLRPInfo) ToActualLRP(lrpKey ActualLRPKey, lrpInstance
 	if actualLRPInfo == nil {
 		return nil
 	}
-	return &ActualLRP{
+	lrp := ActualLRP{
 		ActualLRPKey:         lrpKey,
 		ActualLRPInstanceKey: lrpInstanceKey,
 		ActualLRPNetInfo:     actualLRPInfo.ActualLRPNetInfo,
+		AvailabilityZone:     actualLRPInfo.AvailabilityZone,
 		CrashCount:           actualLRPInfo.CrashCount,
 		CrashReason:          actualLRPInfo.CrashReason,
 		State:                actualLRPInfo.State,
@@ -272,14 +284,21 @@ func (actualLRPInfo *ActualLRPInfo) ToActualLRP(lrpKey ActualLRPKey, lrpInstance
 		ModificationTag:      actualLRPInfo.ModificationTag,
 		Presence:             actualLRPInfo.Presence,
 	}
+
+	if actualLRPInfo.RoutableExists() {
+		lrp.SetRoutable(actualLRPInfo.GetRoutable())
+	}
+
+	return &lrp
 }
 
 func (actual *ActualLRP) ToActualLRPInfo() *ActualLRPInfo {
 	if actual == nil {
 		return nil
 	}
-	return &ActualLRPInfo{
+	info := ActualLRPInfo{
 		ActualLRPNetInfo: actual.ActualLRPNetInfo,
+		AvailabilityZone: actual.AvailabilityZone,
 		CrashCount:       actual.CrashCount,
 		CrashReason:      actual.CrashReason,
 		State:            actual.State,
@@ -288,9 +307,14 @@ func (actual *ActualLRP) ToActualLRPInfo() *ActualLRPInfo {
 		ModificationTag:  actual.ModificationTag,
 		Presence:         actual.Presence,
 	}
+
+	if actual.RoutableExists() {
+		info.SetRoutable(actual.GetRoutable())
+	}
+	return &info
 }
 
-// DEPRECATED
+// Deprecated: use the ActualLRPInstances API instead
 func (actual *ActualLRP) ToActualLRPGroup() *ActualLRPGroup {
 	if actual == nil {
 		return nil
@@ -452,11 +476,11 @@ func hasHigherPriority(lrp1, lrp2 *ActualLRP) bool {
 	return false
 }
 
-// DEPRECATED
 // ResolveActualLRPGroups convert the given set of lrp instances into
 // ActualLRPGroup.  This conversion is lossy.  A suspect LRP is given
 // precendence over an Ordinary instance if it is Running.  Otherwise, the
 // Ordinary instance is returned in the Instance field of the ActualLRPGroup.
+// Deprecated: use the ActualLRPInstances API instead
 func ResolveActualLRPGroups(lrps []*ActualLRP) []*ActualLRPGroup {
 	mapOfGroups := map[ActualLRPKey]*ActualLRPGroup{}
 	result := []*ActualLRPGroup{}
@@ -479,11 +503,11 @@ func ResolveActualLRPGroups(lrps []*ActualLRP) []*ActualLRPGroup {
 	return result
 }
 
-// DEPRECATED
 // ResolveToActualLRPGroup calls ResolveActualLRPGroups and return the first
 // LRP group.  It panics if there are more than one group.  If there no LRP
 // groups were returned by ResolveActualLRPGroups, then an empty ActualLRPGroup
 // is returned.
+// Deprecated: use the ActualLRPInstances API instead
 func ResolveActualLRPGroup(lrps []*ActualLRP) *ActualLRPGroup {
 	actualLRPGroups := ResolveActualLRPGroups(lrps)
 	switch len(actualLRPGroups) {
