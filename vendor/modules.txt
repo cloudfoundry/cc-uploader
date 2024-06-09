@@ -3,10 +3,6 @@
 code.cloudfoundry.org/bbs/encryption
 code.cloudfoundry.org/bbs/format
 code.cloudfoundry.org/bbs/models
-# code.cloudfoundry.org/cfhttp v2.0.1-0.20190228180516-1f526aa7822e+incompatible
-## explicit
-code.cloudfoundry.org/cfhttp
-code.cloudfoundry.org/cfhttp/unix_transport
 # code.cloudfoundry.org/cfhttp/v2 v2.1.0
 ## explicit; go 1.19
 code.cloudfoundry.org/cfhttp/v2
