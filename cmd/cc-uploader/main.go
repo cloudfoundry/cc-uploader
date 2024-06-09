@@ -1,6 +1,7 @@
 package main
 
 import (
+	"code.cloudfoundry.org/tlsconfig"
 	"crypto/tls"
 	"crypto/x509"
 	"flag"
@@ -16,7 +17,6 @@ import (
 	"code.cloudfoundry.org/cc-uploader/ccclient"
 	"code.cloudfoundry.org/cc-uploader/config"
 	"code.cloudfoundry.org/cc-uploader/handlers"
-	"code.cloudfoundry.org/cfhttp"
 	"code.cloudfoundry.org/debugserver"
 	"code.cloudfoundry.org/lager/v3"
 	"code.cloudfoundry.org/lager/v3/lagerflags"
@@ -136,18 +136,17 @@ func initializeServer(logger lager.Logger, uploaderConfig config.UploaderConfig,
 	}
 
 	if tlsServer {
-		tlsConfig, err := cfhttp.NewTLSConfig(
-			uploaderConfig.MutualTLS.ServerCert,
-			uploaderConfig.MutualTLS.ServerKey,
-			uploaderConfig.MutualTLS.CACert)
+		clientTLSConfig, err := tlsconfig.Build(
+			tlsconfig.WithIdentityFromFile(uploaderConfig.MutualTLS.ServerCert, uploaderConfig.MutualTLS.ServerKey),
+		).Client(tlsconfig.WithAuthorityFromFile(uploaderConfig.MutualTLS.CACert))
 
 		if err != nil {
 			logger.Error("new-tls-config-failed", err)
 			os.Exit(1)
 		}
 
-		tlsConfig.MinVersion = tls.VersionTLS12
-		tlsConfig.CipherSuites = []uint16{
+		clientTLSConfig.MinVersion = tls.VersionTLS12
+		clientTLSConfig.CipherSuites = []uint16{
 			tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
 			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
 		}
@@ -155,7 +154,7 @@ func initializeServer(logger lager.Logger, uploaderConfig config.UploaderConfig,
 		if err != nil {
 			logger.Fatal("failed-loading-tls-config", err)
 		}
-		return http_server.NewTLSServer(uploaderConfig.MutualTLS.ListenAddress, ccUploaderHandler, tlsConfig)
+		return http_server.NewTLSServer(uploaderConfig.MutualTLS.ListenAddress, ccUploaderHandler, clientTLSConfig)
 	}
 	return http_server.New(uploaderConfig.ListenAddress, ccUploaderHandler)
 }
