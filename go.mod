@@ -1,6 +1,6 @@
 module code.cloudfoundry.org/cc-uploader
 
-go 1.20
+go 1.22
 
 require (
 	code.cloudfoundry.org/cfhttp v2.0.1-0.20190228180516-1f526aa7822e+incompatible
