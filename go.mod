@@ -4,7 +4,7 @@ go 1.22
 
 require (
 	code.cloudfoundry.org/cfhttp/v2 v2.2.0
-	code.cloudfoundry.org/debugserver v0.2.0
+	code.cloudfoundry.org/debugserver v0.3.0
 	code.cloudfoundry.org/lager/v3 v3.1.0
 	code.cloudfoundry.org/runtimeschema v0.0.0-20240514235758-31be7684c5bf
 	code.cloudfoundry.org/tlsconfig v0.1.0
@@ -29,7 +29,7 @@ require (
 	github.com/jackc/puddle/v2 v2.2.1 // indirect
 	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d // indirect
 	github.com/openzipkin/zipkin-go v0.4.3 // indirect
-	golang.org/x/exp v0.0.0-20240808152545-0cdaa3abc0fa // indirect
+	golang.org/x/exp v0.0.0-20240822175202-778ce7bba035 // indirect
 	golang.org/x/net v0.28.0 // indirect
 	golang.org/x/sys v0.24.0 // indirect
 	golang.org/x/text v0.17.0 // indirect
