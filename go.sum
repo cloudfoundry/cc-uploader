@@ -598,8 +598,8 @@ code.cloudfoundry.org/cfhttp/v2 v2.17.0 h1:JDqLJ8nvTfs5I3pcLI7kZXtB5XrZDvrKVjP6t
 code.cloudfoundry.org/cfhttp/v2 v2.17.0/go.mod h1:pclMDth2Rb8Wp1PeOd8kpYXQJs9iFRt6m63a1DzkmVQ=
 code.cloudfoundry.org/clock v1.0.0 h1:kFXWQM4bxYvdBw2X8BbBeXwQNgfoWv1vqAk2ZZyBN2o=
 code.cloudfoundry.org/clock v1.0.0/go.mod h1:QD9Lzhd/ux6eNQVUDVRJX/RKTigpewimNYBi7ivZKY8=
-code.cloudfoundry.org/debugserver v0.19.0 h1:xDa0sNnhBwKDyWSzr7FRI3TSN5TSsgmlcIdoH/MRLxY=
-code.cloudfoundry.org/debugserver v0.19.0/go.mod h1:GBOH2js5g55cRF11VMDp7tQAngiazC4D1TX32eLpp5w=
+code.cloudfoundry.org/debugserver v0.20.0 h1:U3wMgfaoaU0sn9x+D/2/YmDV31+gN1azFNc7ZVWUkmg=
+code.cloudfoundry.org/debugserver v0.20.0/go.mod h1:GBOH2js5g55cRF11VMDp7tQAngiazC4D1TX32eLpp5w=
 code.cloudfoundry.org/lager v2.0.0+incompatible h1:WZwDKDB2PLd/oL+USK4b4aEjUymIej9My2nUQ9oWEwQ=
 code.cloudfoundry.org/lager v2.0.0+incompatible/go.mod h1:O2sS7gKP3HM2iemG+EnwvyNQK7pTSC6Foi4QiMp9sSk=
 code.cloudfoundry.org/lager/v3 v3.11.0 h1:YjRSl1USPIz1FFZPVvwFYgXUUodSIWDdXaLVvME3jZg=
