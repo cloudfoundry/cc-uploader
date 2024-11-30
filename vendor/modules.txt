@@ -3,7 +3,7 @@
 code.cloudfoundry.org/bbs/encryption
 code.cloudfoundry.org/bbs/format
 code.cloudfoundry.org/bbs/models
-# code.cloudfoundry.org/cfhttp/v2 v2.22.0
+# code.cloudfoundry.org/cfhttp/v2 v2.23.0
 ## explicit; go 1.22.0
 code.cloudfoundry.org/cfhttp/v2
 # code.cloudfoundry.org/debugserver v0.25.0
