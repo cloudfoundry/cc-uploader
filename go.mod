@@ -4,7 +4,7 @@ go 1.22
 toolchain go1.22.5
 
 require (
-	code.cloudfoundry.org/cfhttp/v2 v2.23.0
+	code.cloudfoundry.org/cfhttp/v2 v2.24.0
 	code.cloudfoundry.org/debugserver v0.26.0
 	code.cloudfoundry.org/lager/v3 v3.16.0
 	code.cloudfoundry.org/runtimeschema v0.0.0-20240514235758-31be7684c5bf
@@ -24,7 +24,7 @@ require (
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
-	github.com/google/pprof v0.0.0-20241122213907-cbe949e5a41b // indirect
+	github.com/google/pprof v0.0.0-20241128161848-dc51965c6481 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20231201235250-de7065d80cb9 // indirect
 	github.com/jackc/puddle/v2 v2.2.1 // indirect
