@@ -3,7 +3,7 @@
 code.cloudfoundry.org/bbs/encryption
 code.cloudfoundry.org/bbs/format
 code.cloudfoundry.org/bbs/models
-# code.cloudfoundry.org/cfhttp/v2 v2.27.0
+# code.cloudfoundry.org/cfhttp/v2 v2.28.0
 ## explicit; go 1.22.0
 code.cloudfoundry.org/cfhttp/v2
 # code.cloudfoundry.org/debugserver v0.30.0
@@ -75,7 +75,7 @@ github.com/google/pprof/profile
 # github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d
 ## explicit
 github.com/nu7hatch/gouuid
-# github.com/onsi/ginkgo/v2 v2.22.1
+# github.com/onsi/ginkgo/v2 v2.22.2
 ## explicit; go 1.22.0
 github.com/onsi/ginkgo/v2
 github.com/onsi/ginkgo/v2/config
