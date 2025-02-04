@@ -5,7 +5,7 @@ toolchain go1.22.5
 
 require (
 	code.cloudfoundry.org/cfhttp/v2 v2.33.0
-	code.cloudfoundry.org/debugserver v0.35.0
+	code.cloudfoundry.org/debugserver v0.36.0
 	code.cloudfoundry.org/lager/v3 v3.25.0
 	code.cloudfoundry.org/runtimeschema v0.0.0-20240514235758-31be7684c5bf
 	code.cloudfoundry.org/tlsconfig v0.17.0
