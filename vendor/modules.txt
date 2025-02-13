@@ -3,7 +3,7 @@
 code.cloudfoundry.org/bbs/encryption
 code.cloudfoundry.org/bbs/format
 code.cloudfoundry.org/bbs/models
-# code.cloudfoundry.org/cfhttp/v2 v2.33.0
+# code.cloudfoundry.org/cfhttp/v2 v2.34.0
 ## explicit; go 1.22.0
 code.cloudfoundry.org/cfhttp/v2
 # code.cloudfoundry.org/debugserver v0.37.0
@@ -160,7 +160,7 @@ golang.org/x/tools/go/ast/inspector
 golang.org/x/tools/internal/astutil/edge
 # google.golang.org/genproto/googleapis/rpc v0.0.0-20240509183442-62759503f434
 ## explicit; go 1.19
-# google.golang.org/protobuf v1.36.4
+# google.golang.org/protobuf v1.36.5
 ## explicit; go 1.21
 google.golang.org/protobuf/encoding/prototext
 google.golang.org/protobuf/encoding/protowire
