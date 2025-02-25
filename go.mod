@@ -1,14 +1,14 @@
 module code.cloudfoundry.org/cc-uploader
 
 go 1.22
-toolchain go1.22.5
+toolchain go1.23.6
 
 require (
 	code.cloudfoundry.org/cfhttp/v2 v2.34.0
 	code.cloudfoundry.org/debugserver v0.38.0
 	code.cloudfoundry.org/lager/v3 v3.26.0
 	code.cloudfoundry.org/runtimeschema v0.0.0-20240514235758-31be7684c5bf
-	code.cloudfoundry.org/tlsconfig v0.18.0
+	code.cloudfoundry.org/tlsconfig v0.19.0
 	github.com/cloudfoundry/dropsonde v1.1.0
 	github.com/onsi/ginkgo/v2 v2.22.2
 	github.com/onsi/gomega v1.36.2
