@@ -10,8 +10,12 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
+	"os/signal"
 	"runtime"
+	"sync"
+	"syscall"
 	"time"
 
 	"code.cloudfoundry.org/cc-uploader/ccclient"
@@ -41,6 +45,9 @@ const (
 	communicationTimeout        = 30 * time.Second
 )
 
+// Global WaitGroup to track uploads
+var uploadWaitGroup sync.WaitGroup
+
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	flag.Parse()
@@ -53,6 +60,19 @@ func main() {
 	logger, reconfigurableSink := lagerflags.NewFromConfig("cc-uploader", uploaderConfig.LagerConfig)
 
 	initializeDropsonde(logger, uploaderConfig)
+
+	// Create signal channel to listen for shutdown signals
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM)
+
+	// Goroutine to log any signal received (without handling non-TERM signals)
+	go func() {
+		allSignals := make(chan os.Signal, 1)
+		signal.Notify(allSignals) // Capture all signals for logging
+		for sig := range allSignals {
+			logger.Info("received-signal", lager.Data{"signal": sig.String()})
+		}
+	}()
 
 	members := grouper.Members{
 		{"cc-uploader-tls", initializeServer(logger, uploaderConfig, true)},
@@ -73,10 +93,32 @@ func main() {
 	monitor := ifrit.Invoke(sigmon.New(group))
 	logger.Info("ready")
 
-	err = <-monitor.Wait()
-	if err != nil {
-		logger.Error("exited-with-failure", err)
-		os.Exit(1)
+	select {
+	case err := <-monitor.Wait(): // Handle process failure
+		if err != nil {
+			logger.Info("exited-with-failure")
+			os.Exit(1)
+		}
+
+	case sig := <-signalChan: // Handle shutdown signal
+		logger.Info("shutdown-signal-received", lager.Data{"signal": sig})
+
+		// Gracefully signal Ifrit monitor to stop processes
+		monitor.Signal(os.Interrupt)
+		logger.Info("graceful-shutdown-waiting-for-uploads")
+
+		// Wait for all uploads to finish before shutting down
+		uploadWaitGroup.Wait()
+		logger.Info("all-uploads-completed, waiting before shutdown")
+		time.Sleep(20 * time.Second)
+		logger.Info("proceeding with shutdown")
+		logger.Info("all-uploads-completed, shutting down")
+
+		logger.Info("graceful-shutdown-completed")
+		pid := os.Getpid()
+
+		logger.Info("Forcefully terminate if necessary")
+		forceShutdown(pid, "cc-uploader", logger)
 	}
 
 	logger.Info("exited")
@@ -128,8 +170,10 @@ func initializeServer(logger lager.Logger, uploaderConfig config.UploaderConfig,
 
 	// To maintain backwards compatibility with hairpin polling URLs, skip SSL verification for now
 	poller := ccclient.NewPoller(logger, &http.Client{Transport: initializeTlsTransport(uploaderConfig, true)}, time.Duration(uploaderConfig.CCJobPollingInterval))
+	// Wrap the poller to track job completion
+	trackedPoller := trackPollingCompletion(poller, logger)
 
-	ccUploaderHandler, err := handlers.New(uploader, poller, logger)
+	ccUploaderHandler, err := handlers.New(uploader, trackedPoller, logger)
 	if err != nil {
 		logger.Error("router-building-failed", err)
 		os.Exit(1)
@@ -157,4 +201,52 @@ func initializeServer(logger lager.Logger, uploaderConfig config.UploaderConfig,
 		return http_server.NewTLSServer(uploaderConfig.MutualTLS.ListenAddress, ccUploaderHandler, clientTLSConfig)
 	}
 	return http_server.New(uploaderConfig.ListenAddress, ccUploaderHandler)
+}
+
+// Wrap poller to track when jobs start and finish
+func trackPollingCompletion(poller ccclient.Poller, logger lager.Logger) ccclient.Poller {
+	return &trackedPoller{
+		Poller: poller,
+		logger: logger.Session("tracked-poller"),
+	}
+}
+
+type trackedPoller struct {
+	ccclient.Poller
+	logger lager.Logger
+}
+
+func (tp *trackedPoller) Poll(uploadUrl *url.URL, uploadResponse *http.Response, cancelChan <-chan struct{}) error {
+	uploadWaitGroup.Add(1)       // Increase count when polling starts
+	defer uploadWaitGroup.Done() // Ensures it always decrements, even on failure
+
+	err := tp.Poller.Poll(uploadUrl, uploadResponse, cancelChan)
+	if err != nil {
+		tp.logger.Error("polling-failed", err)
+		return err
+	}
+
+	tp.logger.Info("polling-succeeded")
+	return nil
+}
+
+func forceShutdown(pid int, processName string, logger lager.Logger) {
+	// Check if process is already terminated
+	process, err := os.FindProcess(pid)
+	if err != nil {
+		logger.Info(fmt.Sprintf("Process '%s' with pid '%d' already terminated.", processName, pid))
+		return
+	}
+
+	logger.Info(fmt.Sprintf("Forcefully shutting down process '%s' with pid '%d'", processName, pid))
+
+	// Send SIGKILL to forcefully terminate the process
+	time.Sleep(5 * time.Second)
+	err = process.Kill()
+	if err != nil {
+		logger.Error("failed-to-forcefully-shutdown-process", err, lager.Data{
+			"process": processName,
+			"pid":     pid,
+		})
+	}
 }

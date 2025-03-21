@@ -47,6 +47,7 @@ func (p *poller) Poll(fallbackURL *url.URL, res *http.Response, cancelChan <-cha
 
 		switch body.Entity.Status {
 		case JOB_QUEUED, JOB_RUNNING:
+			p.logger.Info("cc-job-queued-or-running", lager.Data{"status": body.Entity.Status})
 		case JOB_FINISHED:
 			p.logger.Info("cc-job-finished")
 			return nil
