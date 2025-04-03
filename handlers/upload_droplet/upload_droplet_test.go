@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"sync"
 	"time"
 
 	"code.cloudfoundry.org/cc-uploader/ccclient/fake_ccclient"
@@ -36,7 +37,8 @@ var _ = Describe("UploadDroplet", func() {
 
 		JustBeforeEach(func() {
 			logger = lager.NewLogger("fake-logger")
-			dropletUploadHandler := upload_droplet.New(&uploader, &poller, logger)
+			var wg sync.WaitGroup
+			dropletUploadHandler := upload_droplet.New(&uploader, &poller, logger, &wg)
 
 			dropletUploadHandler.ServeHTTP(responseWriter, incomingRequest)
 		})
