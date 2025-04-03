@@ -2,6 +2,7 @@ package main
 
 import (
 	"code.cloudfoundry.org/tlsconfig"
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"flag"
@@ -10,7 +11,6 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"net/url"
 	"os"
 	"os/signal"
 	"runtime"
@@ -73,13 +73,16 @@ func main() {
 			logger.Info("received-signal", lager.Data{"signal": sig.String()})
 		}
 	}()
-
+	var nonTLSServer *http.Server
+	tlsServer, tlsRunner := initializeServer(logger, uploaderConfig, true)
 	members := grouper.Members{
-		{"cc-uploader-tls", initializeServer(logger, uploaderConfig, true)},
+		{"cc-uploader-tls", tlsRunner},
 	}
 	if !uploaderConfig.DisableNonTLS {
+		var nonTLSRunner ifrit.Runner
+		nonTLSServer, nonTLSRunner = initializeServer(logger, uploaderConfig, false)
 		members = append(grouper.Members{
-			{"cc-uploader", initializeServer(logger, uploaderConfig, false)},
+			{"cc-uploader", nonTLSRunner},
 		}, members...)
 	}
 	if uploaderConfig.DebugServerConfig.DebugAddress != "" {
@@ -99,26 +102,31 @@ func main() {
 			logger.Info("exited-with-failure")
 			os.Exit(1)
 		}
-
 	case sig := <-signalChan: // Handle shutdown signal
 		logger.Info("shutdown-signal-received", lager.Data{"signal": sig})
 
 		// Gracefully signal Ifrit monitor to stop processes
 		monitor.Signal(os.Interrupt)
 		logger.Info("graceful-shutdown-waiting-for-uploads")
-
 		// Wait for all uploads to finish before shutting down
 		uploadWaitGroup.Wait()
-		logger.Info("all-uploads-completed, waiting before shutdown")
-		time.Sleep(20 * time.Second)
-		logger.Info("proceeding with shutdown")
-		logger.Info("all-uploads-completed, shutting down")
+		// Add a delay to ensure responses are sent to Diego before shutdown
+		extraWait := 30 * time.Second
+		logger.Info("waiting-additional-time-before-shutdown", lager.Data{"duration": extraWait})
+		time.Sleep(extraWait) // Ensure uploader has time to send responses
+		// Gracefully shutdown the HTTP server
+		ctx, cancel := context.WithTimeout(context.Background(), 300*time.Second)
+		defer cancel()
+		if !uploaderConfig.DisableNonTLS {
+			if err := nonTLSServer.Shutdown(ctx); err != nil {
+				logger.Error("non-tls-server-shutdown-failed", err)
+			}
+		}
 
-		logger.Info("graceful-shutdown-completed")
-		pid := os.Getpid()
+		if err := tlsServer.Shutdown(ctx); err != nil {
+			logger.Error("tls-server-shutdown-failed", err)
+		}
 
-		logger.Info("Forcefully terminate if necessary")
-		forceShutdown(pid, "cc-uploader", logger)
 	}
 
 	logger.Info("exited")
@@ -165,20 +173,19 @@ func initializeTlsTransport(uploaderConfig config.UploaderConfig, skipVerify boo
 	}
 }
 
-func initializeServer(logger lager.Logger, uploaderConfig config.UploaderConfig, tlsServer bool) ifrit.Runner {
+func initializeServer(logger lager.Logger, uploaderConfig config.UploaderConfig, tlsServer bool) (*http.Server, ifrit.Runner) {
 	uploader := ccclient.NewUploader(logger, &http.Client{Transport: initializeTlsTransport(uploaderConfig, false)})
 
 	// To maintain backwards compatibility with hairpin polling URLs, skip SSL verification for now
 	poller := ccclient.NewPoller(logger, &http.Client{Transport: initializeTlsTransport(uploaderConfig, true)}, time.Duration(uploaderConfig.CCJobPollingInterval))
-	// Wrap the poller to track job completion
-	trackedPoller := trackPollingCompletion(poller, logger)
 
-	ccUploaderHandler, err := handlers.New(uploader, trackedPoller, logger)
+	ccUploaderHandler, err := handlers.New(uploader, poller, logger, &uploadWaitGroup)
 	if err != nil {
 		logger.Error("router-building-failed", err)
 		os.Exit(1)
 	}
 
+	var server *http.Server
 	if tlsServer {
 		clientTLSConfig, err := tlsconfig.Build(
 			tlsconfig.WithIdentityFromFile(uploaderConfig.MutualTLS.ServerCert, uploaderConfig.MutualTLS.ServerKey),
@@ -198,55 +205,16 @@ func initializeServer(logger lager.Logger, uploaderConfig config.UploaderConfig,
 		if err != nil {
 			logger.Fatal("failed-loading-tls-config", err)
 		}
-		return http_server.NewTLSServer(uploaderConfig.MutualTLS.ListenAddress, ccUploaderHandler, clientTLSConfig)
+		server = &http.Server{
+			Addr:      uploaderConfig.MutualTLS.ListenAddress,
+			Handler:   ccUploaderHandler,
+			TLSConfig: clientTLSConfig,
+		}
+		return server, http_server.NewTLSServer(uploaderConfig.MutualTLS.ListenAddress, ccUploaderHandler, clientTLSConfig)
 	}
-	return http_server.New(uploaderConfig.ListenAddress, ccUploaderHandler)
-}
-
-// Wrap poller to track when jobs start and finish
-func trackPollingCompletion(poller ccclient.Poller, logger lager.Logger) ccclient.Poller {
-	return &trackedPoller{
-		Poller: poller,
-		logger: logger.Session("tracked-poller"),
+	server = &http.Server{
+		Addr:    uploaderConfig.ListenAddress,
+		Handler: ccUploaderHandler,
 	}
-}
-
-type trackedPoller struct {
-	ccclient.Poller
-	logger lager.Logger
-}
-
-func (tp *trackedPoller) Poll(uploadUrl *url.URL, uploadResponse *http.Response, cancelChan <-chan struct{}) error {
-	uploadWaitGroup.Add(1)       // Increase count when polling starts
-	defer uploadWaitGroup.Done() // Ensures it always decrements, even on failure
-
-	err := tp.Poller.Poll(uploadUrl, uploadResponse, cancelChan)
-	if err != nil {
-		tp.logger.Error("polling-failed", err)
-		return err
-	}
-
-	tp.logger.Info("polling-succeeded")
-	return nil
-}
-
-func forceShutdown(pid int, processName string, logger lager.Logger) {
-	// Check if process is already terminated
-	process, err := os.FindProcess(pid)
-	if err != nil {
-		logger.Info(fmt.Sprintf("Process '%s' with pid '%d' already terminated.", processName, pid))
-		return
-	}
-
-	logger.Info(fmt.Sprintf("Forcefully shutting down process '%s' with pid '%d'", processName, pid))
-
-	// Send SIGKILL to forcefully terminate the process
-	time.Sleep(5 * time.Second)
-	err = process.Kill()
-	if err != nil {
-		logger.Error("failed-to-forcefully-shutdown-process", err, lager.Data{
-			"process": processName,
-			"pid":     pid,
-		})
-	}
+	return server, http_server.New(uploaderConfig.ListenAddress, ccUploaderHandler)
 }

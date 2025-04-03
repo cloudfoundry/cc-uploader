@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"sync"
 	"time"
 
 	"code.cloudfoundry.org/cc-uploader/ccclient"
@@ -13,25 +14,29 @@ import (
 	"code.cloudfoundry.org/runtimeschema/cc_messages"
 )
 
-func New(uploader ccclient.Uploader, poller ccclient.Poller, logger lager.Logger) http.Handler {
+func New(uploader ccclient.Uploader, poller ccclient.Poller, logger lager.Logger, uploadWaitGroup *sync.WaitGroup) http.Handler {
 	return &dropletUploader{
-		uploader: uploader,
-		poller:   poller,
-		logger:   logger,
+		uploader:        uploader,
+		poller:          poller,
+		logger:          logger,
+		uploadWaitGroup: uploadWaitGroup, // Store reference
 	}
 }
 
 type dropletUploader struct {
-	uploader ccclient.Uploader
-	poller   ccclient.Poller
-	logger   lager.Logger
+	uploader        ccclient.Uploader
+	poller          ccclient.Poller
+	logger          lager.Logger
+	uploadWaitGroup *sync.WaitGroup // Add a pointer to WaitGroup
 }
 
 var MissingCCDropletUploadUriKeyError = errors.New(fmt.Sprintf("missing %s parameter", cc_messages.CcDropletUploadUriKey))
 
 func (h *dropletUploader) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	logger := h.logger.Session("droplet.upload")
-
+	h.uploadWaitGroup.Add(1)
+	// Ensure that the WaitGroup is decremented when the function returns
+	defer h.uploadWaitGroup.Done()
 	logger.Info("extracting-droplet-upload-uri-key")
 	uploadUriParameter := r.URL.Query().Get(cc_messages.CcDropletUploadUriKey)
 	if uploadUriParameter == "" {
