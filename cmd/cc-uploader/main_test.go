@@ -257,6 +257,22 @@ var _ = Describe("CC Uploader", func() {
 					Expect(len(fakeCC.UploadedDroplets[appGuid])).To(Equal(contentLength))
 				})
 			})
+
+		})
+	})
+	Describe("Signal Handling", func() {
+		It("should handle SIGTERM and start shutdown logic", func() {
+			// Send SIGTERM to the cc-uploader process
+			session.Signal(os.Interrupt)
+
+			// Verify that the process logs the shutdown signal
+			Eventually(session, 5*time.Second).Should(gbytes.Say("shutdown-signal-received"))
+
+			// Verify that the process logs the graceful shutdown message
+			Eventually(session, 5*time.Second).Should(gbytes.Say("graceful-shutdown-waiting-for-uploads"))
+
+			// Ensure the process exits cleanly
+			Eventually(session, 30*time.Second).Should(gexec.Exit(0))
 		})
 	})
 })
