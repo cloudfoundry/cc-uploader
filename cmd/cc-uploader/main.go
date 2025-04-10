@@ -65,14 +65,6 @@ func main() {
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM)
 
-	// Goroutine to log any signal received (without handling non-TERM signals)
-	go func() {
-		allSignals := make(chan os.Signal, 1)
-		signal.Notify(allSignals) // Capture all signals for logging
-		for sig := range allSignals {
-			logger.Info("received-signal", lager.Data{"signal": sig.String()})
-		}
-	}()
 	var nonTLSServer *http.Server
 	tlsServer, tlsRunner := initializeServer(logger, uploaderConfig, true)
 	members := grouper.Members{
@@ -126,7 +118,6 @@ func main() {
 		if err := tlsServer.Shutdown(ctx); err != nil {
 			logger.Error("tls-server-shutdown-failed", err)
 		}
-
 	}
 
 	logger.Info("exited")
@@ -202,9 +193,6 @@ func initializeServer(logger lager.Logger, uploaderConfig config.UploaderConfig,
 			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
 		}
 
-		if err != nil {
-			logger.Fatal("failed-loading-tls-config", err)
-		}
 		server = &http.Server{
 			Addr:      uploaderConfig.MutualTLS.ListenAddress,
 			Handler:   ccUploaderHandler,
