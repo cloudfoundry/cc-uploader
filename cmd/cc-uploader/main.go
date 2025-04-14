@@ -102,10 +102,6 @@ func main() {
 		logger.Info("graceful-shutdown-waiting-for-uploads")
 		// Wait for all uploads to finish before shutting down
 		uploadWaitGroup.Wait()
-		// Add a delay to ensure responses are sent to Diego before shutdown
-		extraWait := 30 * time.Second
-		logger.Info("waiting-additional-time-before-shutdown", lager.Data{"duration": extraWait})
-		time.Sleep(extraWait) // Ensure uploader has time to send responses
 		// Gracefully shutdown the HTTP server
 		ctx, cancel := context.WithTimeout(context.Background(), 300*time.Second)
 		defer cancel()

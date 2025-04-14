@@ -260,19 +260,31 @@ var _ = Describe("CC Uploader", func() {
 
 		})
 	})
-	Describe("Signal Handling", func() {
-		It("should handle SIGTERM and start shutdown logic", func() {
+
+	Describe("Handling shutdown signals", func() {
+		It("should handle SIGTERM and drain ongoing uploads before shutting down", func() {
+			ccUploaderAddress := fmt.Sprintf("http://localhost:%d", httpListenPort)
+			emitter := NewEmitter(100) // large, slow upload
+			postRequest := dropletUploadRequest(appGuid, emitter, 100, ccUploaderAddress)
+
+			go func() {
+				_, err := http.DefaultClient.Do(postRequest)
+				Expect(err).NotTo(HaveOccurred())
+			}()
+
+			// Give it a moment to start the upload
+			time.Sleep(200 * time.Millisecond)
+
 			// Send SIGTERM to the cc-uploader process
 			session.Signal(os.Interrupt)
 
-			// Verify that the process logs the shutdown signal
-			Eventually(session, 5*time.Second).Should(gbytes.Say("shutdown-signal-received"))
+			// Expect shutdown logs
+			Eventually(session, 1*time.Second).Should(gbytes.Say("shutdown-signal-received"))
+			Eventually(session, 1*time.Second).Should(gbytes.Say("graceful-shutdown-waiting-for-uploads"))
 
-			// Verify that the process logs the graceful shutdown message
-			Eventually(session, 5*time.Second).Should(gbytes.Say("graceful-shutdown-waiting-for-uploads"))
-
-			// Ensure the process exits cleanly
-			Eventually(session, 30*time.Second).Should(gexec.Exit(0))
+			// Wait for the process to exit cleanly
+			Eventually(session, 2*time.Second).Should(gexec.Exit(0))
 		})
 	})
+
 })
