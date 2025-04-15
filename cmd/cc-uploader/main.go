@@ -2,6 +2,7 @@ package main
 
 import (
 	"code.cloudfoundry.org/tlsconfig"
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"flag"
@@ -11,7 +12,10 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/signal"
 	"runtime"
+	"sync"
+	"syscall"
 	"time"
 
 	"code.cloudfoundry.org/cc-uploader/ccclient"
@@ -41,6 +45,9 @@ const (
 	communicationTimeout        = 30 * time.Second
 )
 
+// Global WaitGroup to track uploads
+var uploadWaitGroup sync.WaitGroup
+
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	flag.Parse()
@@ -54,12 +61,20 @@ func main() {
 
 	initializeDropsonde(logger, uploaderConfig)
 
+	// Create signal channel to listen for shutdown signals
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM)
+
+	var nonTLSServer *http.Server
+	tlsServer, tlsRunner := initializeServer(logger, uploaderConfig, true)
 	members := grouper.Members{
-		{"cc-uploader-tls", initializeServer(logger, uploaderConfig, true)},
+		{"cc-uploader-tls", tlsRunner},
 	}
 	if !uploaderConfig.DisableNonTLS {
+		var nonTLSRunner ifrit.Runner
+		nonTLSServer, nonTLSRunner = initializeServer(logger, uploaderConfig, false)
 		members = append(grouper.Members{
-			{"cc-uploader", initializeServer(logger, uploaderConfig, false)},
+			{"cc-uploader", nonTLSRunner},
 		}, members...)
 	}
 	if uploaderConfig.DebugServerConfig.DebugAddress != "" {
@@ -73,10 +88,32 @@ func main() {
 	monitor := ifrit.Invoke(sigmon.New(group))
 	logger.Info("ready")
 
-	err = <-monitor.Wait()
-	if err != nil {
-		logger.Error("exited-with-failure", err)
-		os.Exit(1)
+	select {
+	case err := <-monitor.Wait():
+		if err != nil {
+			logger.Info("exited-with-failure")
+			os.Exit(1)
+		}
+	case sig := <-signalChan:
+		logger.Info("shutdown-signal-received", lager.Data{"signal": sig})
+
+		// Gracefully signal Ifrit monitor to stop processes
+		monitor.Signal(os.Interrupt)
+		logger.Info("graceful-shutdown-waiting-for-uploads")
+		// Wait for all uploads to finish before shutting down
+		uploadWaitGroup.Wait()
+		// Gracefully shutdown the HTTP server
+		ctx, cancel := context.WithTimeout(context.Background(), 300*time.Second)
+		defer cancel()
+		if !uploaderConfig.DisableNonTLS {
+			if err := nonTLSServer.Shutdown(ctx); err != nil {
+				logger.Error("non-tls-server-shutdown-failed", err)
+			}
+		}
+
+		if err := tlsServer.Shutdown(ctx); err != nil {
+			logger.Error("tls-server-shutdown-failed", err)
+		}
 	}
 
 	logger.Info("exited")
@@ -123,18 +160,19 @@ func initializeTlsTransport(uploaderConfig config.UploaderConfig, skipVerify boo
 	}
 }
 
-func initializeServer(logger lager.Logger, uploaderConfig config.UploaderConfig, tlsServer bool) ifrit.Runner {
+func initializeServer(logger lager.Logger, uploaderConfig config.UploaderConfig, tlsServer bool) (*http.Server, ifrit.Runner) {
 	uploader := ccclient.NewUploader(logger, &http.Client{Transport: initializeTlsTransport(uploaderConfig, false)})
 
 	// To maintain backwards compatibility with hairpin polling URLs, skip SSL verification for now
 	poller := ccclient.NewPoller(logger, &http.Client{Transport: initializeTlsTransport(uploaderConfig, true)}, time.Duration(uploaderConfig.CCJobPollingInterval))
 
-	ccUploaderHandler, err := handlers.New(uploader, poller, logger)
+	ccUploaderHandler, err := handlers.New(uploader, poller, logger, &uploadWaitGroup)
 	if err != nil {
 		logger.Error("router-building-failed", err)
 		os.Exit(1)
 	}
 
+	var server *http.Server
 	if tlsServer {
 		clientTLSConfig, err := tlsconfig.Build(
 			tlsconfig.WithIdentityFromFile(uploaderConfig.MutualTLS.ServerCert, uploaderConfig.MutualTLS.ServerKey),
@@ -151,10 +189,16 @@ func initializeServer(logger lager.Logger, uploaderConfig config.UploaderConfig,
 			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
 		}
 
-		if err != nil {
-			logger.Fatal("failed-loading-tls-config", err)
+		server = &http.Server{
+			Addr:      uploaderConfig.MutualTLS.ListenAddress,
+			Handler:   ccUploaderHandler,
+			TLSConfig: clientTLSConfig,
 		}
-		return http_server.NewTLSServer(uploaderConfig.MutualTLS.ListenAddress, ccUploaderHandler, clientTLSConfig)
+		return server, http_server.NewTLSServer(uploaderConfig.MutualTLS.ListenAddress, ccUploaderHandler, clientTLSConfig)
 	}
-	return http_server.New(uploaderConfig.ListenAddress, ccUploaderHandler)
+	server = &http.Server{
+		Addr:    uploaderConfig.ListenAddress,
+		Handler: ccUploaderHandler,
+	}
+	return server, http_server.New(uploaderConfig.ListenAddress, ccUploaderHandler)
 }

@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"strconv"
+	"sync"
 	"time"
 
 	"code.cloudfoundry.org/cc-uploader/ccclient"
@@ -53,8 +54,8 @@ var _ = Describe("Handlers", func() {
 
 		uploader := ccclient.NewUploader(logger, http.DefaultClient)
 		poller := ccclient.NewPoller(logger, http.DefaultClient, 100*time.Millisecond)
-
-		handler, err = handlers.New(uploader, poller, logger)
+		var wg sync.WaitGroup
+		handler, err = handlers.New(uploader, poller, logger, &wg)
 		Expect(err).NotTo(HaveOccurred())
 
 		postStatusCode = http.StatusCreated

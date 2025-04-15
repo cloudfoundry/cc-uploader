@@ -257,6 +257,34 @@ var _ = Describe("CC Uploader", func() {
 					Expect(len(fakeCC.UploadedDroplets[appGuid])).To(Equal(contentLength))
 				})
 			})
+
 		})
 	})
+
+	Describe("Handling shutdown signals", func() {
+		It("should handle SIGTERM and drain ongoing uploads before shutting down", func() {
+			ccUploaderAddress := fmt.Sprintf("http://localhost:%d", httpListenPort)
+			emitter := NewEmitter(100) // large, slow upload
+			postRequest := dropletUploadRequest(appGuid, emitter, 100, ccUploaderAddress)
+
+			go func() {
+				_, err := http.DefaultClient.Do(postRequest)
+				Expect(err).NotTo(HaveOccurred())
+			}()
+
+			// Give it a moment to start the upload
+			time.Sleep(200 * time.Millisecond)
+
+			// Send SIGTERM to the cc-uploader process
+			session.Signal(os.Interrupt)
+
+			// Expect shutdown logs
+			Eventually(session, 1*time.Second).Should(gbytes.Say("shutdown-signal-received"))
+			Eventually(session, 1*time.Second).Should(gbytes.Say("graceful-shutdown-waiting-for-uploads"))
+
+			// Wait for the process to exit cleanly
+			Eventually(session, 2*time.Second).Should(gexec.Exit(0))
+		})
+	})
+
 })
