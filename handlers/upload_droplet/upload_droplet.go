@@ -19,7 +19,7 @@ func New(uploader ccclient.Uploader, poller ccclient.Poller, logger lager.Logger
 		uploader:        uploader,
 		poller:          poller,
 		logger:          logger,
-		uploadWaitGroup: uploadWaitGroup, // Store reference
+		uploadWaitGroup: uploadWaitGroup,
 	}
 }
 
@@ -27,7 +27,7 @@ type dropletUploader struct {
 	uploader        ccclient.Uploader
 	poller          ccclient.Poller
 	logger          lager.Logger
-	uploadWaitGroup *sync.WaitGroup // Add a pointer to WaitGroup
+	uploadWaitGroup *sync.WaitGroup
 }
 
 var MissingCCDropletUploadUriKeyError = errors.New(fmt.Sprintf("missing %s parameter", cc_messages.CcDropletUploadUriKey))

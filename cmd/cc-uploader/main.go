@@ -89,12 +89,12 @@ func main() {
 	logger.Info("ready")
 
 	select {
-	case err := <-monitor.Wait(): // Handle process failure
+	case err := <-monitor.Wait():
 		if err != nil {
 			logger.Info("exited-with-failure")
 			os.Exit(1)
 		}
-	case sig := <-signalChan: // Handle shutdown signal
+	case sig := <-signalChan:
 		logger.Info("shutdown-signal-received", lager.Data{"signal": sig})
 
 		// Gracefully signal Ifrit monitor to stop processes
