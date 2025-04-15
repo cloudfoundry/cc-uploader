@@ -6,8 +6,8 @@ code.cloudfoundry.org/bbs/models
 # code.cloudfoundry.org/cfhttp/v2 v2.42.0
 ## explicit; go 1.23.0
 code.cloudfoundry.org/cfhttp/v2
-# code.cloudfoundry.org/debugserver v0.39.0
-## explicit; go 1.22.0
+# code.cloudfoundry.org/debugserver v0.46.0
+## explicit; go 1.23.0
 code.cloudfoundry.org/debugserver
 # code.cloudfoundry.org/lager/v3 v3.34.0
 ## explicit; go 1.23.0
