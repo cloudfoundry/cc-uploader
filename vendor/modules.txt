@@ -6,7 +6,7 @@ code.cloudfoundry.org/bbs/models
 # code.cloudfoundry.org/cfhttp/v2 v2.45.0
 ## explicit; go 1.23.0
 code.cloudfoundry.org/cfhttp/v2
-# code.cloudfoundry.org/debugserver v0.50.0
+# code.cloudfoundry.org/debugserver v0.51.0
 ## explicit; go 1.23.0
 code.cloudfoundry.org/debugserver
 # code.cloudfoundry.org/lager/v3 v3.37.0
@@ -43,7 +43,7 @@ github.com/cloudfoundry/dropsonde/runtime_stats
 # github.com/cloudfoundry/sonde-go v0.0.0-20240515174134-adba8bce1248
 ## explicit; go 1.17
 github.com/cloudfoundry/sonde-go/events
-# github.com/go-logr/logr v1.4.2
+# github.com/go-logr/logr v1.4.3
 ## explicit; go 1.18
 github.com/go-logr/logr
 github.com/go-logr/logr/funcr
@@ -63,7 +63,7 @@ github.com/google/go-cmp/cmp/internal/diff
 github.com/google/go-cmp/cmp/internal/flags
 github.com/google/go-cmp/cmp/internal/function
 github.com/google/go-cmp/cmp/internal/value
-# github.com/google/pprof v0.0.0-20250501235452-c0086092b71a
+# github.com/google/pprof v0.0.0-20250602020802-c6617b811d0e
 ## explicit; go 1.23.0
 github.com/google/pprof/profile
 # github.com/jackc/pgpassfile v1.0.0
