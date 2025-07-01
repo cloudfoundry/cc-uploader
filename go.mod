@@ -5,7 +5,7 @@ go 1.24
 require (
 	code.cloudfoundry.org/cfhttp/v2 v2.47.0
 	code.cloudfoundry.org/debugserver v0.53.0
-	code.cloudfoundry.org/lager/v3 v3.39.0
+	code.cloudfoundry.org/lager/v3 v3.40.0
 	code.cloudfoundry.org/runtimeschema v0.0.0-20240514235758-31be7684c5bf
 	code.cloudfoundry.org/tlsconfig v0.30.0
 	github.com/cloudfoundry/dropsonde v1.1.0
@@ -23,7 +23,7 @@ require (
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
-	github.com/google/pprof v0.0.0-20250607225305-033d6d78b36a // indirect
+	github.com/google/pprof v0.0.0-20250630185457-6e76a2b096b5 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20231201235250-de7065d80cb9 // indirect
 	github.com/jackc/puddle/v2 v2.2.1 // indirect
