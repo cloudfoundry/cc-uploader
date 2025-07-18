@@ -38,6 +38,12 @@ var configPath = flag.String(
 	"path to config",
 )
 
+var shutdownTimeoutInMinutes = flag.Duration(
+	"shutdownTimeoutInMinutes",
+	15*time.Minute,
+	"max time (minutes) to wait for graceful shutdown",
+)
+
 const (
 	ccUploadDialTimeout         = 10 * time.Second
 	ccUploadKeepAlive           = 30 * time.Second
@@ -109,8 +115,8 @@ func main() {
 		monitor.Signal(os.Interrupt)
 
 		// Stop accepting new connections, but allow any in‐flight handlers to continue running under their own request
-		// contexts until they complete or the 300s timeout expires.
-		shutdownCtx, cancel := context.WithTimeout(context.Background(), 300*time.Second)
+		// contexts until they complete or the timeout expires.
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), *shutdownTimeoutInMinutes)
 		defer cancel()
 		if nonTLSServer != nil {
 			logger.Info("shutting-down-nonTLS-server")
