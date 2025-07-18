@@ -15,6 +15,7 @@ import (
 	"os/signal"
 	"runtime"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -45,8 +46,12 @@ const (
 	communicationTimeout        = 30 * time.Second
 )
 
-// Global WaitGroup to track uploads
-var uploadWaitGroup sync.WaitGroup
+var (
+	// Global WaitGroup to track uploads
+	uploadWaitGroup sync.WaitGroup
+	// 'draining' signals that we’re in shutdown‐drain mode: in-flight uploads will finish, but new ones are refused
+	draining int32
+)
 
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
@@ -87,7 +92,6 @@ func main() {
 
 	monitor := ifrit.Invoke(sigmon.New(group))
 	logger.Info("ready")
-
 	select {
 	case err := <-monitor.Wait():
 		if err != nil {
@@ -97,23 +101,34 @@ func main() {
 	case sig := <-signalChan:
 		logger.Info("shutdown-signal-received", lager.Data{"signal": sig})
 
-		// Gracefully signal Ifrit monitor to stop processes
+		// Mark draining → handlers reject new uploads
+		atomic.StoreInt32(&draining, 1)
+
+		// Tell the Ifrit process group to stop: send an os.Interrupt
+		// to each member runner so they begin their graceful shutdown.
 		monitor.Signal(os.Interrupt)
-		logger.Info("graceful-shutdown-waiting-for-uploads")
-		// Wait for all uploads to finish before shutting down
-		uploadWaitGroup.Wait()
-		// Gracefully shutdown the HTTP server
-		ctx, cancel := context.WithTimeout(context.Background(), 300*time.Second)
+
+		// Stop accepting new connections, but allow any in‐flight handlers to continue running under their own request
+		// contexts until they complete or the 300s timeout expires.
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 300*time.Second)
 		defer cancel()
-		if !uploaderConfig.DisableNonTLS {
-			if err := nonTLSServer.Shutdown(ctx); err != nil {
+		if nonTLSServer != nil {
+			logger.Info("shutting-down-nonTLS-server")
+			if err := nonTLSServer.Shutdown(shutdownCtx); err != nil {
 				logger.Error("non-tls-server-shutdown-failed", err)
 			}
 		}
-
-		if err := tlsServer.Shutdown(ctx); err != nil {
-			logger.Error("tls-server-shutdown-failed", err)
+		if tlsServer != nil {
+			logger.Info("shutting-down-tls-server")
+			if err := tlsServer.Shutdown(shutdownCtx); err != nil {
+				logger.Error("tls-server-shutdown-failed", err)
+			}
 		}
+
+		// Wait for all in-flight uploads & polls to finish
+		logger.Info("graceful-shutdown-waiting-for-uploads")
+		uploadWaitGroup.Wait()
+		logger.Info("all-uploads-finished")
 	}
 
 	logger.Info("exited")
@@ -166,7 +181,7 @@ func initializeServer(logger lager.Logger, uploaderConfig config.UploaderConfig,
 	// To maintain backwards compatibility with hairpin polling URLs, skip SSL verification for now
 	poller := ccclient.NewPoller(logger, &http.Client{Transport: initializeTlsTransport(uploaderConfig, true)}, time.Duration(uploaderConfig.CCJobPollingInterval))
 
-	ccUploaderHandler, err := handlers.New(uploader, poller, logger, &uploadWaitGroup)
+	ccUploaderHandler, err := handlers.New(uploader, poller, logger, &uploadWaitGroup, &draining)
 	if err != nil {
 		logger.Error("router-building-failed", err)
 		os.Exit(1)
