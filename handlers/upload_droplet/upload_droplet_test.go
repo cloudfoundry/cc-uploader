@@ -38,7 +38,8 @@ var _ = Describe("UploadDroplet", func() {
 		JustBeforeEach(func() {
 			logger = lager.NewLogger("fake-logger")
 			var wg sync.WaitGroup
-			dropletUploadHandler := upload_droplet.New(&uploader, &poller, logger, &wg)
+			var draining int32
+			dropletUploadHandler := upload_droplet.New(&uploader, &poller, logger, &wg, &draining,)
 
 			dropletUploadHandler.ServeHTTP(responseWriter, incomingRequest)
 		})
