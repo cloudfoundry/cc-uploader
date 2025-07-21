@@ -2,6 +2,7 @@ package upload_droplet_test
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -179,11 +180,16 @@ var _ = Describe("UploadDroplet", func() {
 		})
 
 		Context("when the requester (client) goes away", func() {
-			var fakeResponseWriter *test_helpers.FakeResponseWriter
+			var (
+				cancel             context.CancelFunc
+				ctx                context.Context
+				fakeResponseWriter *test_helpers.FakeResponseWriter
+			)
 
 			BeforeEach(func() {
+				ctx, cancel = context.WithCancel(context.Background())
 				var err error
-				incomingRequest, err = http.NewRequest(
+				incomingRequest, err = http.NewRequestWithContext(ctx,
 					"POST",
 					fmt.Sprintf("http://example.com?%s=upload-uri.com", cc_messages.CcDropletUploadUriKey),
 					bytes.NewBufferString(""),
@@ -198,20 +204,34 @@ var _ = Describe("UploadDroplet", func() {
 					responseWriter = fakeResponseWriter
 
 					uploader.UploadStub = func(uploadURL *url.URL, filename string, r *http.Request, cancelChan <-chan struct{}) (*http.Response, error) {
-						closedChan <- true
-						Eventually(cancelChan).Should(BeClosed())
+						// Simulate disconnect
+						go func() {
+							time.Sleep(100 * time.Millisecond)
+							cancel()
+						}()
+
+						Eventually(cancelChan, 2*time.Second).Should(BeClosed())
 						return nil, errors.New("cancelled")
 					}
 				})
 
 				It("responds with an error code", func() {
+					done := make(chan struct{})
+					go func() {
+						dropletUploadHandler := upload_droplet.New(&uploader, &poller, lager.NewLogger("fake-logger"), &sync.WaitGroup{}, new(int32))
+						dropletUploadHandler.ServeHTTP(responseWriter, incomingRequest)
+						close(done)
+					}()
+					Eventually(done, 3*time.Second).Should(BeClosed())
 					Expect(fakeResponseWriter.Code).To(Equal(http.StatusInternalServerError))
 				})
 			})
 
 			Context("and we are polling", func() {
+				var uploadResponse *http.Response
+
 				BeforeEach(func() {
-					uploadResponse := &http.Response{StatusCode: http.StatusOK}
+					uploadResponse = &http.Response{StatusCode: http.StatusOK}
 					uploader.UploadReturns(uploadResponse, nil)
 
 					closedChan := make(chan bool)
@@ -219,13 +239,24 @@ var _ = Describe("UploadDroplet", func() {
 					responseWriter = fakeResponseWriter
 
 					poller.PollStub = func(fallbackURL *url.URL, res *http.Response, cancelChan <-chan struct{}) error {
-						closedChan <- true
-						Eventually(cancelChan).Should(BeClosed())
+						go func() {
+							time.Sleep(100 * time.Millisecond)
+							cancel()
+						}()
+
+						Eventually(cancelChan, 2*time.Second).Should(BeClosed())
 						return errors.New("cancelled")
 					}
 				})
 
 				It("responds with an error code", func() {
+					done := make(chan struct{})
+					go func() {
+						dropletUploadHandler := upload_droplet.New(&uploader, &poller, lager.NewLogger("fake-logger"), &sync.WaitGroup{}, new(int32))
+						dropletUploadHandler.ServeHTTP(responseWriter, incomingRequest)
+						close(done)
+					}()
+					Eventually(done, 3*time.Second).Should(BeClosed())
 					Expect(fakeResponseWriter.Code).To(Equal(http.StatusInternalServerError))
 				})
 			})
