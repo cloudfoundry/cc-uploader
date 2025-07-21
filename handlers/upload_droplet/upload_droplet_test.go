@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"code.cloudfoundry.org/cc-uploader/ccclient/fake_ccclient"
@@ -176,6 +177,28 @@ var _ = Describe("UploadDroplet", func() {
 				It("responds with a status created", func() {
 					Expect(outgoingResponse.Code).To(Equal(http.StatusCreated))
 				})
+			})
+		})
+
+		Context("when the system is draining", func() {
+			var dropletUploadHandler http.Handler
+			var draining int32
+
+			BeforeEach(func() {
+				// Simulate the system being in a draining state
+				atomic.StoreInt32(&draining, 1)
+				responseWriter = httptest.NewRecorder()
+				var err error
+				incomingRequest, err = http.NewRequest("POST", "http://example.com?cc_droplet_upload_uri=http://some-uri", nil)
+				Expect(err).NotTo(HaveOccurred())
+
+				dropletUploadHandler = upload_droplet.New(&uploader, &poller, lager.NewLogger("fake-logger"), &sync.WaitGroup{}, &draining)
+			})
+
+			It("returns 503", func() {
+				dropletUploadHandler.ServeHTTP(outgoingResponse, incomingRequest)
+				Expect(outgoingResponse.Code).To(Equal(http.StatusServiceUnavailable))
+				Expect(outgoingResponse.Body.String()).To(ContainSubstring("Service is draining"))
 			})
 		})
 
