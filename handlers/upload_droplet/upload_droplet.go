@@ -1,12 +1,14 @@
 package upload_droplet
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"code.cloudfoundry.org/cc-uploader/ccclient"
@@ -14,12 +16,19 @@ import (
 	"code.cloudfoundry.org/runtimeschema/cc_messages"
 )
 
-func New(uploader ccclient.Uploader, poller ccclient.Poller, logger lager.Logger, uploadWaitGroup *sync.WaitGroup) http.Handler {
+func New(
+	uploader ccclient.Uploader,
+	poller ccclient.Poller,
+	logger lager.Logger,
+	uploadWaitGroup *sync.WaitGroup,
+	draining *int32,
+) http.Handler {
 	return &dropletUploader{
 		uploader:        uploader,
 		poller:          poller,
 		logger:          logger,
 		uploadWaitGroup: uploadWaitGroup,
+		draining:        draining,
 	}
 }
 
@@ -28,15 +37,23 @@ type dropletUploader struct {
 	poller          ccclient.Poller
 	logger          lager.Logger
 	uploadWaitGroup *sync.WaitGroup
+	draining        *int32
 }
 
 var MissingCCDropletUploadUriKeyError = errors.New(fmt.Sprintf("missing %s parameter", cc_messages.CcDropletUploadUriKey))
 
 func (h *dropletUploader) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	logger := h.logger.Session("droplet.upload")
+	// Reject new requests once we’re draining
+	if atomic.LoadInt32(h.draining) == 1 {
+		logger.Info("rejecting-request-draining")
+		http.Error(w, "Service is draining", http.StatusServiceUnavailable)
+		return
+	}
+	// Track this in-flight upload
 	h.uploadWaitGroup.Add(1)
-	// Ensure that the WaitGroup is decremented when the function returns
 	defer h.uploadWaitGroup.Done()
+
 	logger.Info("extracting-droplet-upload-uri-key")
 	uploadUriParameter := r.URL.Query().Get(cc_messages.CcDropletUploadUriKey)
 	if uploadUriParameter == "" {
@@ -73,27 +90,14 @@ func (h *dropletUploader) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	query := uploadUrl.Query()
 	query.Set("async", "true")
 	uploadUrl.RawQuery = query.Encode()
-
-	cancelChan := make(chan struct{})
-	var writerClosed <-chan bool
-	closeNotifier, ok := w.(http.CloseNotifier)
-	if ok {
-		writerClosed = closeNotifier.CloseNotify()
-	}
-
-	done := make(chan struct{})
-	go func() {
-		timer := time.NewTimer(timeout)
-		select {
-		case <-writerClosed:
-			close(cancelChan)
-		case <-timer.C:
-			close(cancelChan)
-		case <-done:
-		}
-		timer.Stop()
-	}()
-	defer close(done)
+	// Create a request‐scoped context that folds in two cancel signals:
+	//  1) client disconnect (r.Context())  
+	//  2) maximum timeout elapsing  
+	// Both the uploader and poller watch ctx.Done(), so if Diego hangs up
+	// or the timeout exceeds, automatically abort the work.
+	ctx, cancel := context.WithTimeout(r.Context(), timeout)
+	defer cancel()
+	cancelChan := ctx.Done()
 
 	logger = logger.WithData(lager.Data{"upload-url": uploadUrl, "content-length": r.ContentLength})
 	logger.Info("uploading-droplet")
