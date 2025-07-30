@@ -110,14 +110,11 @@ func main() {
 		// Mark draining → handlers reject new uploads
 		atomic.StoreInt32(&draining, 1)
 
-		// Tell the Ifrit process group to stop: send an os.Interrupt
-		// to each member runner so they begin their graceful shutdown.
-		monitor.Signal(os.Interrupt)
-
 		// Stop accepting new connections, but allow any in‐flight handlers to continue running under their own request
 		// contexts until they complete or the timeout expires.
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), *shutdownTimeoutInMinutes)
 		defer cancel()
+		// Gracefully shut down HTTP listeners
 		if nonTLSServer != nil {
 			logger.Info("shutting-down-nonTLS-server")
 			if err := nonTLSServer.Shutdown(shutdownCtx); err != nil {
@@ -131,10 +128,28 @@ func main() {
 			}
 		}
 
-		// Wait for all in-flight uploads & polls to finish
-		logger.Info("graceful-shutdown-waiting-for-uploads")
-		uploadWaitGroup.Wait()
-		logger.Info("all-uploads-finished")
+		// We want to stop waiting once either all uploads finish OR the timeout fires.
+		// Since WaitGroup.Wait() itself can’t time out, we “race” it against ctx.Done().
+		// Create a channel to signal when uploads are done:
+		done := make(chan struct{})
+		// Launch a goroutine that blocks until the WaitGroup is zero,
+		// then closes `done` to let our select know the work is complete:
+		go func() {
+			uploadWaitGroup.Wait() // wait for all in-flight uploads to call Done()
+			close(done)  // signal completion
+		}()
+
+		select {
+		case <-done:
+			logger.Info("all-uploads-finished")
+		case <-shutdownCtx.Done():
+			logger.Info("graceful-shutdown-timed-out",
+				lager.Data{"timeout": shutdownTimeoutInMinutes.String(), "error": shutdownCtx.Err()})
+		}
+
+		// Now that uploads are either done or timed out,
+		// tell Ifrit to stop all runners (hard-close any leftovers):
+		monitor.Signal(os.Interrupt)
 	}
 
 	logger.Info("exited")
