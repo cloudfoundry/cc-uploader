@@ -15,6 +15,7 @@ import (
 	"os/signal"
 	"runtime"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -37,6 +38,12 @@ var configPath = flag.String(
 	"path to config",
 )
 
+var shutdownTimeoutInMinutes = flag.Duration(
+	"shutdownTimeoutInMinutes",
+	15*time.Minute,
+	"max time (minutes) to wait for graceful shutdown",
+)
+
 const (
 	ccUploadDialTimeout         = 10 * time.Second
 	ccUploadKeepAlive           = 30 * time.Second
@@ -45,8 +52,12 @@ const (
 	communicationTimeout        = 30 * time.Second
 )
 
-// Global WaitGroup to track uploads
-var uploadWaitGroup sync.WaitGroup
+var (
+	// Global WaitGroup to track uploads
+	uploadWaitGroup sync.WaitGroup
+	// 'draining' signals that we’re in shutdown‐drain mode: in-flight uploads will finish, but new ones are refused
+	draining int32
+)
 
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
@@ -87,7 +98,6 @@ func main() {
 
 	monitor := ifrit.Invoke(sigmon.New(group))
 	logger.Info("ready")
-
 	select {
 	case err := <-monitor.Wait():
 		if err != nil {
@@ -97,23 +107,49 @@ func main() {
 	case sig := <-signalChan:
 		logger.Info("shutdown-signal-received", lager.Data{"signal": sig})
 
-		// Gracefully signal Ifrit monitor to stop processes
-		monitor.Signal(os.Interrupt)
-		logger.Info("graceful-shutdown-waiting-for-uploads")
-		// Wait for all uploads to finish before shutting down
-		uploadWaitGroup.Wait()
-		// Gracefully shutdown the HTTP server
-		ctx, cancel := context.WithTimeout(context.Background(), 300*time.Second)
+		// Mark draining → handlers reject new uploads
+		atomic.StoreInt32(&draining, 1)
+
+		// Stop accepting new connections, but allow any in‐flight handlers to continue running under their own request
+		// contexts until they complete or the timeout expires.
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), *shutdownTimeoutInMinutes)
 		defer cancel()
-		if !uploaderConfig.DisableNonTLS {
-			if err := nonTLSServer.Shutdown(ctx); err != nil {
+		// Gracefully shut down HTTP listeners
+		if nonTLSServer != nil {
+			logger.Info("shutting-down-nonTLS-server")
+			if err := nonTLSServer.Shutdown(shutdownCtx); err != nil {
 				logger.Error("non-tls-server-shutdown-failed", err)
 			}
 		}
-
-		if err := tlsServer.Shutdown(ctx); err != nil {
-			logger.Error("tls-server-shutdown-failed", err)
+		if tlsServer != nil {
+			logger.Info("shutting-down-tls-server")
+			if err := tlsServer.Shutdown(shutdownCtx); err != nil {
+				logger.Error("tls-server-shutdown-failed", err)
+			}
 		}
+
+		// We want to stop waiting once either all uploads finish OR the timeout fires.
+		// Since WaitGroup.Wait() itself can’t time out, we “race” it against ctx.Done().
+		// Create a channel to signal when uploads are done:
+		done := make(chan struct{})
+		// Launch a goroutine that blocks until the WaitGroup is zero,
+		// then closes `done` to let our select know the work is complete:
+		go func() {
+			uploadWaitGroup.Wait() // wait for all in-flight uploads to call Done()
+			close(done)  // signal completion
+		}()
+
+		select {
+		case <-done:
+			logger.Info("all-uploads-finished")
+		case <-shutdownCtx.Done():
+			logger.Info("graceful-shutdown-timed-out",
+				lager.Data{"timeout": shutdownTimeoutInMinutes.String(), "error": shutdownCtx.Err()})
+		}
+
+		// Now that uploads are either done or timed out,
+		// tell Ifrit to stop all runners (hard-close any leftovers):
+		monitor.Signal(os.Interrupt)
 	}
 
 	logger.Info("exited")
@@ -166,7 +202,7 @@ func initializeServer(logger lager.Logger, uploaderConfig config.UploaderConfig,
 	// To maintain backwards compatibility with hairpin polling URLs, skip SSL verification for now
 	poller := ccclient.NewPoller(logger, &http.Client{Transport: initializeTlsTransport(uploaderConfig, true)}, time.Duration(uploaderConfig.CCJobPollingInterval))
 
-	ccUploaderHandler, err := handlers.New(uploader, poller, logger, &uploadWaitGroup)
+	ccUploaderHandler, err := handlers.New(uploader, poller, logger, &uploadWaitGroup, &draining)
 	if err != nil {
 		logger.Error("router-building-failed", err)
 		os.Exit(1)
