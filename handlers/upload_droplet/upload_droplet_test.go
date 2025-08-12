@@ -9,7 +9,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"sync"
-	"sync/atomic"
+	//"sync/atomic"
 	"time"
 
 	"code.cloudfoundry.org/cc-uploader/ccclient/fake_ccclient"
@@ -40,8 +40,7 @@ var _ = Describe("UploadDroplet", func() {
 		JustBeforeEach(func() {
 			logger = lager.NewLogger("fake-logger")
 			var wg sync.WaitGroup
-			var draining int32
-			dropletUploadHandler := upload_droplet.New(&uploader, &poller, logger, &wg, &draining,)
+			dropletUploadHandler := upload_droplet.New(&uploader, &poller, logger, &wg)
 
 			dropletUploadHandler.ServeHTTP(responseWriter, incomingRequest)
 		})
@@ -180,27 +179,27 @@ var _ = Describe("UploadDroplet", func() {
 			})
 		})
 
-		Context("when the system is draining", func() {
-			var dropletUploadHandler http.Handler
-			var draining int32
-
-			BeforeEach(func() {
-				// Simulate the system being in a draining state
-				atomic.StoreInt32(&draining, 1)
-				responseWriter = httptest.NewRecorder()
-				var err error
-				incomingRequest, err = http.NewRequest("POST", "http://example.com?cc_droplet_upload_uri=http://some-uri", nil)
-				Expect(err).NotTo(HaveOccurred())
-
-				dropletUploadHandler = upload_droplet.New(&uploader, &poller, lager.NewLogger("fake-logger"), &sync.WaitGroup{}, &draining)
-			})
-
-			It("returns 503", func() {
-				dropletUploadHandler.ServeHTTP(outgoingResponse, incomingRequest)
-				Expect(outgoingResponse.Code).To(Equal(http.StatusServiceUnavailable))
-				Expect(outgoingResponse.Body.String()).To(ContainSubstring("Service is draining"))
-			})
-		})
+		//Context("when the system is draining", func() {
+		//	var dropletUploadHandler http.Handler
+		//	var draining int32
+		//
+		//	BeforeEach(func() {
+		//		// Simulate the system being in a draining state
+		//		atomic.StoreInt32(&draining, 1)
+		//		responseWriter = httptest.NewRecorder()
+		//		var err error
+		//		incomingRequest, err = http.NewRequest("POST", "http://example.com?cc_droplet_upload_uri=http://some-uri", nil)
+		//		Expect(err).NotTo(HaveOccurred())
+		//
+		//		dropletUploadHandler = upload_droplet.New(&uploader, &poller, lager.NewLogger("fake-logger"), &sync.WaitGroup{})
+		//	})
+		//
+		//	//It("returns 503", func() {
+		//	//	dropletUploadHandler.ServeHTTP(outgoingResponse, incomingRequest)
+		//	//	Expect(outgoingResponse.Code).To(Equal(http.StatusServiceUnavailable))
+		//	//	Expect(outgoingResponse.Body.String()).To(ContainSubstring("Service is draining"))
+		//	//})
+		//})
 
 		Context("when the requester (client) goes away", func() {
 			var (
@@ -241,7 +240,7 @@ var _ = Describe("UploadDroplet", func() {
 				It("responds with an error code", func() {
 					done := make(chan struct{})
 					go func() {
-						dropletUploadHandler := upload_droplet.New(&uploader, &poller, lager.NewLogger("fake-logger"), &sync.WaitGroup{}, new(int32))
+						dropletUploadHandler := upload_droplet.New(&uploader, &poller, lager.NewLogger("fake-logger"), &sync.WaitGroup{})
 						dropletUploadHandler.ServeHTTP(responseWriter, incomingRequest)
 						close(done)
 					}()
@@ -275,7 +274,7 @@ var _ = Describe("UploadDroplet", func() {
 				It("responds with an error code", func() {
 					done := make(chan struct{})
 					go func() {
-						dropletUploadHandler := upload_droplet.New(&uploader, &poller, lager.NewLogger("fake-logger"), &sync.WaitGroup{}, new(int32))
+						dropletUploadHandler := upload_droplet.New(&uploader, &poller, lager.NewLogger("fake-logger"), &sync.WaitGroup{})
 						dropletUploadHandler.ServeHTTP(responseWriter, incomingRequest)
 						close(done)
 					}()

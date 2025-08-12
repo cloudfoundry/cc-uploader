@@ -55,8 +55,7 @@ var _ = Describe("Handlers", func() {
 		uploader := ccclient.NewUploader(logger, http.DefaultClient)
 		poller := ccclient.NewPoller(logger, http.DefaultClient, 100*time.Millisecond)
 		var wg sync.WaitGroup
-		var draining int32
-		handler, err = handlers.New(uploader, poller, logger, &wg,  &draining)
+		handler, err = handlers.New(uploader, poller, logger, &wg)
 		Expect(err).NotTo(HaveOccurred())
 
 		postStatusCode = http.StatusCreated
