@@ -281,10 +281,6 @@ var _ = Describe("CC Uploader", func() {
 			// Expect shutdown logs
 			Eventually(session, 1*time.Second).Should(gbytes.Say("shutdown-signal-received"))
 
-			// Now we should see the HTTP servers begin to shut down
-			Eventually(session, 1*time.Second).Should(gbytes.Say("shutting-down-nonTLS-server"))
-			Eventually(session, 1*time.Second).Should(gbytes.Say("shutting-down-tls-server"))
-
 			// Now we should see that in-flight uploads actually finished
 			Eventually(session, 2*time.Second).Should(gbytes.Say("all-uploads-finished"))
 
