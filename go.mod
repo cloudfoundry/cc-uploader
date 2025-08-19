@@ -4,12 +4,12 @@ go 1.24
 
 require (
 	code.cloudfoundry.org/cfhttp/v2 v2.51.0
-	code.cloudfoundry.org/debugserver v0.62.0
+	code.cloudfoundry.org/debugserver v0.63.0
 	code.cloudfoundry.org/lager/v3 v3.43.0
 	code.cloudfoundry.org/runtimeschema v0.0.0-20240514235758-31be7684c5bf
 	code.cloudfoundry.org/tlsconfig v0.33.0
 	github.com/cloudfoundry/dropsonde v1.1.0
-	github.com/onsi/ginkgo/v2 v2.23.4
+	github.com/onsi/ginkgo/v2 v2.24.0
 	github.com/onsi/gomega v1.38.0
 	github.com/tedsuo/ifrit v0.0.0-20230516164442-7862c310ad26
 	github.com/tedsuo/rata v1.0.0
@@ -17,6 +17,7 @@ require (
 
 require (
 	code.cloudfoundry.org/bbs v0.0.0-20240418184526-a7ed0dccd9f7 // indirect
+	github.com/Masterminds/semver/v3 v3.4.0 // indirect
 	github.com/bmizerany/pat v0.0.0-20210406213842-e4b6760bdd6f // indirect
 	github.com/cloudfoundry/sonde-go v0.0.0-20240515174134-adba8bce1248 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
