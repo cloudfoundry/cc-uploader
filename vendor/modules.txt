@@ -6,7 +6,7 @@ code.cloudfoundry.org/bbs/models
 # code.cloudfoundry.org/cfhttp/v2 v2.51.0
 ## explicit; go 1.23.0
 code.cloudfoundry.org/cfhttp/v2
-# code.cloudfoundry.org/debugserver v0.62.0
+# code.cloudfoundry.org/debugserver v0.63.0
 ## explicit; go 1.23.0
 code.cloudfoundry.org/debugserver
 # code.cloudfoundry.org/lager/v3 v3.43.0
@@ -22,6 +22,9 @@ code.cloudfoundry.org/runtimeschema/cc_messages
 # code.cloudfoundry.org/tlsconfig v0.33.0
 ## explicit; go 1.23.0
 code.cloudfoundry.org/tlsconfig
+# github.com/Masterminds/semver/v3 v3.4.0
+## explicit; go 1.21
+github.com/Masterminds/semver/v3
 # github.com/bmizerany/pat v0.0.0-20210406213842-e4b6760bdd6f
 ## explicit
 github.com/bmizerany/pat
@@ -75,7 +78,7 @@ github.com/google/pprof/profile
 # github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d
 ## explicit
 github.com/nu7hatch/gouuid
-# github.com/onsi/ginkgo/v2 v2.23.4
+# github.com/onsi/ginkgo/v2 v2.24.0
 ## explicit; go 1.23.0
 github.com/onsi/ginkgo/v2
 github.com/onsi/ginkgo/v2/config
