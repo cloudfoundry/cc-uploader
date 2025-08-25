@@ -602,8 +602,8 @@ code.cloudfoundry.org/debugserver v0.63.0 h1:HYzgN58efFwSLCCsDj//Icz0/3wfWaK7b38
 code.cloudfoundry.org/debugserver v0.63.0/go.mod h1:QHGJP7y8y2cnPKUhGsg6WoWfSfvqod6lOAvFIz3lmOE=
 code.cloudfoundry.org/lager v2.0.0+incompatible h1:WZwDKDB2PLd/oL+USK4b4aEjUymIej9My2nUQ9oWEwQ=
 code.cloudfoundry.org/lager v2.0.0+incompatible/go.mod h1:O2sS7gKP3HM2iemG+EnwvyNQK7pTSC6Foi4QiMp9sSk=
-code.cloudfoundry.org/lager/v3 v3.43.0 h1:HrAkIhiKO5KSW5XISWU85Bs83iYI/nO9rrLZh7RpmBI=
-code.cloudfoundry.org/lager/v3 v3.43.0/go.mod h1:5fCPnRvABzn1hkdbwCRuAYxddRyYliDn+Co5KO+6cik=
+code.cloudfoundry.org/lager/v3 v3.44.0 h1:WTC28p5f8l7ZiU84FdsvyX8MKtbnJZaqCqzUXP4D2x0=
+code.cloudfoundry.org/lager/v3 v3.44.0/go.mod h1:/ylxNuBhGgVF0372yFKXPcu1eB6cSB6/8gPdoBj+Qk0=
 code.cloudfoundry.org/locket v0.0.0-20221110203340-76a930295e59 h1:oglZYmMS7wqvH7KbTRCSEE5vA8tkIqaaC0cBIFXt0ns=
 code.cloudfoundry.org/locket v0.0.0-20221110203340-76a930295e59/go.mod h1:AwHLRkdXtttLXNB8RHgLfErJ2kKafH62AR2OClhy6xI=
 code.cloudfoundry.org/runtimeschema v0.0.0-20240514235758-31be7684c5bf h1:sTpfHaU+tgDeRO/fRnyr91gvf1FaJk3ZNiJHiHq4nko=
