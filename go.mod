@@ -3,7 +3,7 @@ module code.cloudfoundry.org/cc-uploader
 go 1.24
 
 require (
-	code.cloudfoundry.org/cfhttp/v2 v2.51.0
+	code.cloudfoundry.org/cfhttp/v2 v2.52.0
 	code.cloudfoundry.org/debugserver v0.63.0
 	code.cloudfoundry.org/lager/v3 v3.44.0
 	code.cloudfoundry.org/runtimeschema v0.0.0-20240514235758-31be7684c5bf
