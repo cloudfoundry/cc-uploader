@@ -58,6 +58,7 @@ var _ = Describe("CC Uploader", func() {
 		configFile      *os.File
 		appGuid         = "app-guid"
 		fakeCCServer    *httptest.Server
+		extraArgs       []string
 	)
 
 	dropletUploadRequest := func(appGuid string, body io.Reader, contentLength int, address string) *http.Request {
@@ -116,6 +117,7 @@ var _ = Describe("CC Uploader", func() {
 		args := []string{
 			"-configPath", configFile.Name(),
 		}
+		args = append(args, extraArgs...)
 		session, err = gexec.Start(exec.Command(ccUploaderBinary, args...), GinkgoWriter, GinkgoWriter)
 		Expect(err).NotTo(HaveOccurred())
 
@@ -124,6 +126,7 @@ var _ = Describe("CC Uploader", func() {
 
 	AfterEach(func() {
 		os.Remove(configFile.Name())
+		extraArgs = nil
 		session.Kill().Wait()
 	})
 
@@ -280,10 +283,84 @@ var _ = Describe("CC Uploader", func() {
 
 			// Expect shutdown logs
 			Eventually(session, 1*time.Second).Should(gbytes.Say("shutdown-signal-received"))
-			Eventually(session, 1*time.Second).Should(gbytes.Say("graceful-shutdown-waiting-for-uploads"))
 
-			// Wait for the process to exit cleanly
+			// Now we should see that in-flight uploads actually finished
+			Eventually(session, 2*time.Second).Should(gbytes.Say("all-uploads-finished"))
+
+			// And finally the process exits cleanly
 			Eventually(session, 2*time.Second).Should(gexec.Exit(0))
+		})
+	})
+
+	Describe("Draining timeout", func() {
+		var ccUploaderAddress string
+
+		BeforeEach(func() {
+			// tiny shutdown timeout for this spec
+			extraArgs = []string{"-shutdownTimeoutInMinutes", "0"}
+
+			ccUploaderAddress = fmt.Sprintf("http://localhost:%d", httpListenPort)
+			// Only for the timeout spec
+			fakeCCServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				_, _ = io.Copy(io.Discard, r.Body) // ignore partial read errors
+				w.WriteHeader(http.StatusCreated)
+			}))
+		})
+
+		AfterEach(func() {
+			fakeCCServer.Close()
+		})
+
+		It("logs graceful-shutdown-timed-out and exits cleanly", func() {
+			// very large, very slow body: ByteEmitter emits 1 byte per ms
+			contentLength := 200_000 // ~200s if fully sent; we’ll time out long before
+			emitter := NewEmitter(contentLength)
+			req := dropletUploadRequest(appGuid, emitter, contentLength, ccUploaderAddress)
+
+			// start the upload in background
+			go func() { _, _ = http.DefaultClient.Do(req) }()
+
+			// give it a moment to enter the handler and increment the WaitGroup
+			time.Sleep(150 * time.Millisecond)
+
+			// send SIGTERM to trigger drain
+			session.Signal(os.Interrupt)
+
+			Eventually(session, time.Second).Should(gbytes.Say("shutdown-signal-received"))
+			// we expect the timeout path, not "all-uploads-finished"
+			Eventually(session, 2*time.Second).Should(gbytes.Say("graceful-shutdown-timed-out"))
+			Eventually(session, 2*time.Second).Should(gexec.Exit(0))
+		})
+	})
+
+	Describe("After SIGTERM", func() {
+		var ccUploaderAddress string
+
+		BeforeEach(func() {
+			fakeCC = fake_cc.New()
+			fakeCCServer = httptest.NewUnstartedServer(fakeCC)
+			fakeCCServer.Start()
+			ccUploaderAddress = fmt.Sprintf("http://localhost:%d", httpListenPort)
+		})
+
+		AfterEach(func() { fakeCCServer.Close() })
+
+		It("stops accepting new connections", func() {
+			// kick off one in-flight request (so process is alive)
+			emitter := NewEmitter(1000)
+			inFlight := dropletUploadRequest(appGuid, emitter, 1000, ccUploaderAddress)
+			go func() { _, _ = http.DefaultClient.Do(inFlight) }()
+
+			time.Sleep(100 * time.Millisecond)
+			session.Signal(os.Interrupt)
+			Eventually(session, time.Second).Should(gbytes.Say("shutdown-signal-received"))
+
+			// a new request should fail quickly
+			newReq := dropletUploadRequest("another-app", NewEmitter(10), 10, ccUploaderAddress)
+			// Allow either a transport error or a non-2xx quickly
+			client := &http.Client{Timeout: 500 * time.Millisecond}
+			_, err := client.Do(newReq)
+			Expect(err).To(HaveOccurred())
 		})
 	})
 

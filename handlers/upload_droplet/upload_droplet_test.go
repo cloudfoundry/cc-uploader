@@ -2,6 +2,7 @@ package upload_droplet_test
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -11,7 +12,6 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/cc-uploader/ccclient/fake_ccclient"
-	"code.cloudfoundry.org/cc-uploader/handlers/test_helpers"
 	"code.cloudfoundry.org/cc-uploader/handlers/upload_droplet"
 	"code.cloudfoundry.org/lager/v3"
 	"code.cloudfoundry.org/runtimeschema/cc_messages"
@@ -178,55 +178,67 @@ var _ = Describe("UploadDroplet", func() {
 		})
 
 		Context("when the requester (client) goes away", func() {
-			var fakeResponseWriter *test_helpers.FakeResponseWriter
 
-			BeforeEach(func() {
-				var err error
-				incomingRequest, err = http.NewRequest(
+			It("responds with an error code when the client goes away during upload", func() {
+				ctx, cancel := context.WithCancel(context.Background())
+				req, err := http.NewRequestWithContext(ctx,
 					"POST",
 					fmt.Sprintf("http://example.com?%s=upload-uri.com", cc_messages.CcDropletUploadUriKey),
 					bytes.NewBufferString(""),
 				)
 				Expect(err).NotTo(HaveOccurred())
+
+				rec := httptest.NewRecorder()
+
+				uploader.UploadStub = func(_ *url.URL, _ string, _ *http.Request, cancelChan <-chan struct{}) (*http.Response, error) {
+					<-cancelChan
+					return nil, errors.New("cancelled")
+				}
+
+				done := make(chan struct{})
+				go func() {
+					h := upload_droplet.New(&uploader, &poller, lager.NewLogger("fake-logger"), &sync.WaitGroup{})
+					h.ServeHTTP(rec, req)
+					close(done)
+				}()
+
+				time.Sleep(100 * time.Millisecond)
+				cancel()
+
+				Eventually(done, 2*time.Second).Should(BeClosed())
+				Expect(rec.Code).To(Equal(http.StatusInternalServerError))
 			})
 
-			Context("and we are uploading", func() {
-				BeforeEach(func() {
-					closedChan := make(chan bool)
-					fakeResponseWriter = test_helpers.NewFakeResponseWriter(closedChan)
-					responseWriter = fakeResponseWriter
+			It("responds with an error code when the client goes away during polling", func() {
+				ctx, cancel := context.WithCancel(context.Background())
+				req, err := http.NewRequestWithContext(ctx,
+					"POST",
+					fmt.Sprintf("http://example.com?%s=upload-uri.com", cc_messages.CcDropletUploadUriKey),
+					bytes.NewBufferString(""),
+				)
+				Expect(err).NotTo(HaveOccurred())
 
-					uploader.UploadStub = func(uploadURL *url.URL, filename string, r *http.Request, cancelChan <-chan struct{}) (*http.Response, error) {
-						closedChan <- true
-						Eventually(cancelChan).Should(BeClosed())
-						return nil, errors.New("cancelled")
-					}
-				})
+				rec := httptest.NewRecorder()
 
-				It("responds with an error code", func() {
-					Expect(fakeResponseWriter.Code).To(Equal(http.StatusInternalServerError))
-				})
-			})
+				uploader.UploadReturns(&http.Response{StatusCode: http.StatusOK}, nil)
 
-			Context("and we are polling", func() {
-				BeforeEach(func() {
-					uploadResponse := &http.Response{StatusCode: http.StatusOK}
-					uploader.UploadReturns(uploadResponse, nil)
+				poller.PollStub = func(_ *url.URL, _ *http.Response, cancelChan <-chan struct{}) error {
+					<-cancelChan
+					return errors.New("cancelled")
+				}
 
-					closedChan := make(chan bool)
-					fakeResponseWriter = test_helpers.NewFakeResponseWriter(closedChan)
-					responseWriter = fakeResponseWriter
+				done := make(chan struct{})
+				go func() {
+					h := upload_droplet.New(&uploader, &poller, lager.NewLogger("fake-logger"), &sync.WaitGroup{})
+					h.ServeHTTP(rec, req)
+					close(done)
+				}()
 
-					poller.PollStub = func(fallbackURL *url.URL, res *http.Response, cancelChan <-chan struct{}) error {
-						closedChan <- true
-						Eventually(cancelChan).Should(BeClosed())
-						return errors.New("cancelled")
-					}
-				})
+				time.Sleep(100 * time.Millisecond)
+				cancel()
 
-				It("responds with an error code", func() {
-					Expect(fakeResponseWriter.Code).To(Equal(http.StatusInternalServerError))
-				})
+				Eventually(done, 2*time.Second).Should(BeClosed())
+				Expect(rec.Code).To(Equal(http.StatusInternalServerError))
 			})
 		})
 

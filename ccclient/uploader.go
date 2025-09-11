@@ -53,7 +53,7 @@ func (u *uploader) Upload(uploadURL *url.URL, filename string, r *http.Request, 
 			logger.Info("succeeded-uploading")
 			break
 		}
-		logger.Error("failed-uploading", err)
+		logger.Error("failed-uploading", uploadErr)
 
 		// not a connect (dial) error
 		var nestedErr error = uploadErr
