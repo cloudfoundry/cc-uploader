@@ -1,6 +1,7 @@
 package upload_droplet
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -14,7 +15,12 @@ import (
 	"code.cloudfoundry.org/runtimeschema/cc_messages"
 )
 
-func New(uploader ccclient.Uploader, poller ccclient.Poller, logger lager.Logger, uploadWaitGroup *sync.WaitGroup) http.Handler {
+func New(
+	uploader ccclient.Uploader,
+	poller ccclient.Poller,
+	logger lager.Logger,
+	uploadWaitGroup *sync.WaitGroup,
+) http.Handler {
 	return &dropletUploader{
 		uploader:        uploader,
 		poller:          poller,
@@ -34,9 +40,11 @@ var MissingCCDropletUploadUriKeyError = errors.New(fmt.Sprintf("missing %s param
 
 func (h *dropletUploader) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	logger := h.logger.Session("droplet.upload")
+
+	// Track this in-flight upload + polling
 	h.uploadWaitGroup.Add(1)
-	// Ensure that the WaitGroup is decremented when the function returns
 	defer h.uploadWaitGroup.Done()
+
 	logger.Info("extracting-droplet-upload-uri-key")
 	uploadUriParameter := r.URL.Query().Get(cc_messages.CcDropletUploadUriKey)
 	if uploadUriParameter == "" {
@@ -74,26 +82,9 @@ func (h *dropletUploader) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	query.Set("async", "true")
 	uploadUrl.RawQuery = query.Encode()
 
-	cancelChan := make(chan struct{})
-	var writerClosed <-chan bool
-	closeNotifier, ok := w.(http.CloseNotifier)
-	if ok {
-		writerClosed = closeNotifier.CloseNotify()
-	}
-
-	done := make(chan struct{})
-	go func() {
-		timer := time.NewTimer(timeout)
-		select {
-		case <-writerClosed:
-			close(cancelChan)
-		case <-timer.C:
-			close(cancelChan)
-		case <-done:
-		}
-		timer.Stop()
-	}()
-	defer close(done)
+	ctx, cancel := context.WithTimeout(r.Context(), timeout)
+	defer cancel()
+	cancelChan := ctx.Done()
 
 	logger = logger.WithData(lager.Data{"upload-url": uploadUrl, "content-length": r.ContentLength})
 	logger.Info("uploading-droplet")

@@ -1,27 +1,25 @@
 package main
 
 import (
-	"code.cloudfoundry.org/tlsconfig"
-	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
 	"os"
 	"os/signal"
-	"runtime"
 	"sync"
 	"syscall"
 	"time"
 
+	"code.cloudfoundry.org/debugserver"
+	"code.cloudfoundry.org/tlsconfig"
+
 	"code.cloudfoundry.org/cc-uploader/ccclient"
 	"code.cloudfoundry.org/cc-uploader/config"
 	"code.cloudfoundry.org/cc-uploader/handlers"
-	"code.cloudfoundry.org/debugserver"
 	"code.cloudfoundry.org/lager/v3"
 	"code.cloudfoundry.org/lager/v3/lagerflags"
 	"github.com/cloudfoundry/dropsonde"
@@ -37,86 +35,29 @@ var configPath = flag.String(
 	"path to config",
 )
 
+var shutdownTimeoutInMinutes = flag.Int(
+	"shutdownTimeoutInMinutes",
+	15,
+	"max time (minutes) to wait for graceful shutdown",
+)
+
 const (
 	ccUploadDialTimeout         = 10 * time.Second
 	ccUploadKeepAlive           = 30 * time.Second
 	ccUploadTLSHandshakeTimeout = 10 * time.Second
 	dropsondeOrigin             = "cc_uploader"
-	communicationTimeout        = 30 * time.Second
 )
 
-// Global WaitGroup to track uploads
-var uploadWaitGroup sync.WaitGroup
+var (
+	// Global WaitGroup to track uploads
+	uploadWaitGroup sync.WaitGroup
+)
 
-func main() {
-	runtime.GOMAXPROCS(runtime.NumCPU())
-	flag.Parse()
-
-	uploaderConfig, err := config.NewUploaderConfig(*configPath)
-	if err != nil {
-		panic(err.Error())
-	}
-
-	logger, reconfigurableSink := lagerflags.NewFromConfig("cc-uploader", uploaderConfig.LagerConfig)
-
-	initializeDropsonde(logger, uploaderConfig)
-
+func newShutdownSignalChannel() <-chan os.Signal {
 	// Create signal channel to listen for shutdown signals
-	signalChan := make(chan os.Signal, 1)
-	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM)
-
-	var nonTLSServer *http.Server
-	tlsServer, tlsRunner := initializeServer(logger, uploaderConfig, true)
-	members := grouper.Members{
-		{"cc-uploader-tls", tlsRunner},
-	}
-	if !uploaderConfig.DisableNonTLS {
-		var nonTLSRunner ifrit.Runner
-		nonTLSServer, nonTLSRunner = initializeServer(logger, uploaderConfig, false)
-		members = append(grouper.Members{
-			{"cc-uploader", nonTLSRunner},
-		}, members...)
-	}
-	if uploaderConfig.DebugServerConfig.DebugAddress != "" {
-		members = append(grouper.Members{
-			{"debug-server", debugserver.Runner(uploaderConfig.DebugServerConfig.DebugAddress, reconfigurableSink)},
-		}, members...)
-	}
-
-	group := grouper.NewOrdered(os.Interrupt, members)
-
-	monitor := ifrit.Invoke(sigmon.New(group))
-	logger.Info("ready")
-
-	select {
-	case err := <-monitor.Wait():
-		if err != nil {
-			logger.Info("exited-with-failure")
-			os.Exit(1)
-		}
-	case sig := <-signalChan:
-		logger.Info("shutdown-signal-received", lager.Data{"signal": sig})
-
-		// Gracefully signal Ifrit monitor to stop processes
-		monitor.Signal(os.Interrupt)
-		logger.Info("graceful-shutdown-waiting-for-uploads")
-		// Wait for all uploads to finish before shutting down
-		uploadWaitGroup.Wait()
-		// Gracefully shutdown the HTTP server
-		ctx, cancel := context.WithTimeout(context.Background(), 300*time.Second)
-		defer cancel()
-		if !uploaderConfig.DisableNonTLS {
-			if err := nonTLSServer.Shutdown(ctx); err != nil {
-				logger.Error("non-tls-server-shutdown-failed", err)
-			}
-		}
-
-		if err := tlsServer.Shutdown(ctx); err != nil {
-			logger.Error("tls-server-shutdown-failed", err)
-		}
-	}
-
-	logger.Info("exited")
+	s := make(chan os.Signal, 1)
+	signal.Notify(s, os.Interrupt, syscall.SIGTERM)
+	return s
 }
 
 func initializeDropsonde(logger lager.Logger, uploaderConfig config.UploaderConfig) {
@@ -133,7 +74,7 @@ func initializeTlsTransport(uploaderConfig config.UploaderConfig, skipVerify boo
 		log.Fatalln("Unable to load cert", err)
 	}
 
-	clientCACert, err := ioutil.ReadFile(uploaderConfig.CCCACert)
+	clientCACert, err := os.ReadFile(uploaderConfig.CCCACert)
 	if err != nil {
 		log.Fatal("Unable to open cert", err)
 	}
@@ -160,7 +101,7 @@ func initializeTlsTransport(uploaderConfig config.UploaderConfig, skipVerify boo
 	}
 }
 
-func initializeServer(logger lager.Logger, uploaderConfig config.UploaderConfig, tlsServer bool) (*http.Server, ifrit.Runner) {
+func initializeServer(logger lager.Logger, uploaderConfig config.UploaderConfig, tlsServer bool) ifrit.Runner {
 	uploader := ccclient.NewUploader(logger, &http.Client{Transport: initializeTlsTransport(uploaderConfig, false)})
 
 	// To maintain backwards compatibility with hairpin polling URLs, skip SSL verification for now
@@ -172,7 +113,6 @@ func initializeServer(logger lager.Logger, uploaderConfig config.UploaderConfig,
 		os.Exit(1)
 	}
 
-	var server *http.Server
 	if tlsServer {
 		clientTLSConfig, err := tlsconfig.Build(
 			tlsconfig.WithIdentityFromFile(uploaderConfig.MutualTLS.ServerCert, uploaderConfig.MutualTLS.ServerKey),
@@ -189,16 +129,85 @@ func initializeServer(logger lager.Logger, uploaderConfig config.UploaderConfig,
 			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
 		}
 
-		server = &http.Server{
-			Addr:      uploaderConfig.MutualTLS.ListenAddress,
-			Handler:   ccUploaderHandler,
-			TLSConfig: clientTLSConfig,
+		return http_server.NewTLSServer(uploaderConfig.MutualTLS.ListenAddress, ccUploaderHandler, clientTLSConfig)
+	}
+
+	return http_server.New(uploaderConfig.ListenAddress, ccUploaderHandler)
+}
+
+func waitForDrainingToFinish() <-chan struct{} {
+	done := make(chan struct{})
+	go func() {
+		uploadWaitGroup.Wait() // wait for all in-flight uploads to call Done()
+		close(done)            // signal completion
+	}()
+	return done
+}
+
+func configureServers(logger lager.Logger, uploaderConfig config.UploaderConfig, reconfigurableSink *lager.ReconfigurableSink) ifrit.Process {
+
+	var nonTLSRunner ifrit.Runner
+	tlsRunner := initializeServer(logger, uploaderConfig, true)
+	members := grouper.Members{
+		{Name: "cc-uploader-tls", Runner: tlsRunner},
+	}
+	if !uploaderConfig.DisableNonTLS {
+		nonTLSRunner = initializeServer(logger, uploaderConfig, false)
+		members = append(grouper.Members{
+			{Name: "cc-uploader", Runner: nonTLSRunner},
+		}, members...)
+	}
+	if uploaderConfig.DebugServerConfig.DebugAddress != "" {
+		members = append(grouper.Members{
+			{Name: "debug-server", Runner: debugserver.Runner(uploaderConfig.DebugServerConfig.DebugAddress, reconfigurableSink)},
+		}, members...)
+	}
+
+	group := grouper.NewOrdered(os.Interrupt, members)
+	monitor := ifrit.Invoke(sigmon.New(group))
+	logger.Info("ready")
+
+	return monitor
+}
+
+func main() {
+	flag.Parse()
+
+	uploaderConfig, err := config.NewUploaderConfig(*configPath)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	logger, reconfigurableSink := lagerflags.NewFromConfig("cc-uploader", uploaderConfig.LagerConfig)
+
+	initializeDropsonde(logger, uploaderConfig)
+
+	shutdownSignal := newShutdownSignalChannel()
+
+	monitor := configureServers(logger, uploaderConfig, reconfigurableSink)
+
+	select {
+	case err := <-monitor.Wait():
+		if err != nil {
+			log.Fatal("server-exited-with-failure: ", err)
 		}
-		return server, http_server.NewTLSServer(uploaderConfig.MutualTLS.ListenAddress, ccUploaderHandler, clientTLSConfig)
+	case s := <-shutdownSignal:
+		logger.Info("shutdown-signal-received", lager.Data{"signal": s})
+
+		// Stop accepting new connections on both runners (TLS & non-TLS), Ifrit will close the listeners
+		monitor.Signal(os.Interrupt)
+
+		// Create channel to signal when uploads (including polling) are done
+		done := waitForDrainingToFinish()
+
+		select {
+		case <-done:
+			logger.Info("all-uploads-finished")
+		case <-time.After(time.Duration(*shutdownTimeoutInMinutes) * time.Minute):
+			logger.Info("graceful-shutdown-timed-out",
+				lager.Data{"timeout": fmt.Sprintf("%d minutes", *shutdownTimeoutInMinutes)})
+		}
 	}
-	server = &http.Server{
-		Addr:    uploaderConfig.ListenAddress,
-		Handler: ccUploaderHandler,
-	}
-	return server, http_server.New(uploaderConfig.ListenAddress, ccUploaderHandler)
+
+	logger.Info("exited")
 }
