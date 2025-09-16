@@ -46,7 +46,6 @@ const (
 	ccUploadKeepAlive           = 30 * time.Second
 	ccUploadTLSHandshakeTimeout = 10 * time.Second
 	dropsondeOrigin             = "cc_uploader"
-	communicationTimeout        = 30 * time.Second
 )
 
 var (
@@ -176,7 +175,7 @@ func main() {
 
 	uploaderConfig, err := config.NewUploaderConfig(*configPath)
 	if err != nil {
-		panic(err.Error())
+		log.Fatal(err)
 	}
 
 	logger, reconfigurableSink := lagerflags.NewFromConfig("cc-uploader", uploaderConfig.LagerConfig)
@@ -190,8 +189,7 @@ func main() {
 	select {
 	case err := <-monitor.Wait():
 		if err != nil {
-			logger.Info("server-exited-with-failure")
-			os.Exit(1)
+			log.Fatal("server-exited-with-failure: ", err)
 		}
 	case s := <-shutdownSignal:
 		logger.Info("shutdown-signal-received", lager.Data{"signal": s})
