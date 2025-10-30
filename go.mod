@@ -4,7 +4,7 @@ go 1.24.0
 
 require (
 	code.cloudfoundry.org/cfhttp/v2 v2.61.0
-	code.cloudfoundry.org/debugserver v0.72.0
+	code.cloudfoundry.org/debugserver v0.73.0
 	code.cloudfoundry.org/lager/v3 v3.53.0
 	code.cloudfoundry.org/runtimeschema v0.0.0-20240514235758-31be7684c5bf
 	code.cloudfoundry.org/tlsconfig v0.37.0
