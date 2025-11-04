@@ -19,7 +19,7 @@ code.cloudfoundry.org/lager/v3/lagertest
 # code.cloudfoundry.org/runtimeschema v0.0.0-20240514235758-31be7684c5bf
 ## explicit; go 1.20
 code.cloudfoundry.org/runtimeschema/cc_messages
-# code.cloudfoundry.org/tlsconfig v0.37.0
+# code.cloudfoundry.org/tlsconfig v0.38.0
 ## explicit; go 1.24.0
 code.cloudfoundry.org/tlsconfig
 # github.com/Masterminds/semver/v3 v3.4.0
