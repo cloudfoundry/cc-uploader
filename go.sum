@@ -608,8 +608,8 @@ code.cloudfoundry.org/locket v0.0.0-20221110203340-76a930295e59 h1:oglZYmMS7wqvH
 code.cloudfoundry.org/locket v0.0.0-20221110203340-76a930295e59/go.mod h1:AwHLRkdXtttLXNB8RHgLfErJ2kKafH62AR2OClhy6xI=
 code.cloudfoundry.org/runtimeschema v0.0.0-20240514235758-31be7684c5bf h1:sTpfHaU+tgDeRO/fRnyr91gvf1FaJk3ZNiJHiHq4nko=
 code.cloudfoundry.org/runtimeschema v0.0.0-20240514235758-31be7684c5bf/go.mod h1:Cbw66uMLAXkeK8ZpcTUIJ9nhXNxaN742q1xS/ONrWiQ=
-code.cloudfoundry.org/tlsconfig v0.42.0 h1:XZIHVFZc3MhegXjQP4Uuh/ZeFX9zyhbGyiMJfTkMZ+k=
-code.cloudfoundry.org/tlsconfig v0.42.0/go.mod h1:Tsb04cCxYkgIgrft3GpojIXBICCgfuqSzPMNqPPbDVM=
+code.cloudfoundry.org/tlsconfig v0.43.0 h1:PzFksVwAFxBObpHQe4yy2syo5qsSDzraMoQss2lxerk=
+code.cloudfoundry.org/tlsconfig v0.43.0/go.mod h1:XhaPZb2E3nW1H1A0M8tETJd5zXGlio2TPBCrthlLcs4=
 dmitri.shuralyov.com/gpu/mtl v0.0.0-20190408044501-666a987793e9/go.mod h1:H6x//7gZCb22OMCxBHrMx7a5I7Hp++hsVxbQ4BYO7hU=
 filippo.io/edwards25519 v1.1.0 h1:FNf4tywRC1HmFuKW5xopWpigGjJKiJSV0Cqo0cJWDaA=
 filippo.io/edwards25519 v1.1.0/go.mod h1:BxyFTGdWcka3PhytdK4V28tE5sGfRvvvRV7EaN4VDT4=
