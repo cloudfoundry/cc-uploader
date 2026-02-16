@@ -194,6 +194,21 @@ var _ = Describe("CC Uploader", func() {
 				httpClient = cfhttp.NewClient(cfhttp.WithTLSConfig(clientTlSConfig))
 			})
 
+			It("should reject requests with invalid client certs", func() {
+				// Create a client with no certs (especially no client CA)
+				insecureClient := &http.Client{
+					Transport: &http.Transport{
+						TLSClientConfig: &tls.Config{
+							InsecureSkipVerify: true,
+						},
+					},
+				}
+
+				resp, err := insecureClient.Do(postRequest)
+				Expect(err).To(HaveOccurred())
+				Expect(resp).To(BeNil())
+			})
+
 			Context("when the CC callback URI is HTTP", func() {
 				BeforeEach(func() {
 					fakeCC = fake_cc.New()

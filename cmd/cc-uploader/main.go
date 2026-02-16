@@ -114,22 +114,22 @@ func initializeServer(logger lager.Logger, uploaderConfig config.UploaderConfig,
 	}
 
 	if tlsServer {
-		clientTLSConfig, err := tlsconfig.Build(
+		tlsConfig, err := tlsconfig.Build(
 			tlsconfig.WithIdentityFromFile(uploaderConfig.MutualTLS.ServerCert, uploaderConfig.MutualTLS.ServerKey),
-		).Client(tlsconfig.WithAuthorityFromFile(uploaderConfig.MutualTLS.CACert))
+		).Server(tlsconfig.WithClientAuthenticationFromFile(uploaderConfig.MutualTLS.CACert))
 
 		if err != nil {
 			logger.Error("new-tls-config-failed", err)
 			os.Exit(1)
 		}
 
-		clientTLSConfig.MinVersion = tls.VersionTLS12
-		clientTLSConfig.CipherSuites = []uint16{
+		tlsConfig.MinVersion = tls.VersionTLS12
+		tlsConfig.CipherSuites = []uint16{
 			tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
 			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
 		}
 
-		return http_server.NewTLSServer(uploaderConfig.MutualTLS.ListenAddress, ccUploaderHandler, clientTLSConfig)
+		return http_server.NewTLSServer(uploaderConfig.MutualTLS.ListenAddress, ccUploaderHandler, tlsConfig)
 	}
 
 	return http_server.New(uploaderConfig.ListenAddress, ccUploaderHandler)
