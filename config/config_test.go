@@ -37,12 +37,10 @@ var _ = Describe("Config", func() {
 					"debug_server_config": {
 						"debug_address": "debug_address"
 					},
-					"disable_non_tls": true,
 					"dropsonde_port": 12,
 					"lager_config": {
 						"log_level": "fatal"
 					},
-					"listen_addr": "listen_addr",
 					"job_polling_interval": "5s",
 
 					"cc_client_cert": "/path/to/server.cert",
@@ -63,9 +61,7 @@ var _ = Describe("Config", func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(uploaderConfig.DropsondePort).To(Equal(12))
-				Expect(uploaderConfig.DisableNonTLS).To(Equal(true))
 				Expect(uploaderConfig.LagerConfig.LogLevel).To(Equal("fatal"))
-				Expect(uploaderConfig.ListenAddress).To(Equal("listen_addr"))
 				Expect(uploaderConfig.CCJobPollingInterval).To(Equal(Duration(5 * time.Second)))
 				Expect(uploaderConfig.DebugServerConfig.DebugAddress).To(Equal("debug_address"))
 				Expect(uploaderConfig.CCClientCert).To(Equal("/path/to/server.cert"))
@@ -95,9 +91,7 @@ var _ = Describe("Config", func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(uploaderConfig.DropsondePort).To(Equal(3457))
-				Expect(uploaderConfig.DisableNonTLS).To(Equal(false))
 				Expect(uploaderConfig.LagerConfig.LogLevel).To(Equal("info"))
-				Expect(uploaderConfig.ListenAddress).To(Equal("0.0.0.0:9090"))
 				Expect(uploaderConfig.CCJobPollingInterval).To(Equal(Duration(1 * time.Second)))
 			})
 		})
