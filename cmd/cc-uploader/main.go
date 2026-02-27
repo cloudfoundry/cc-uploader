@@ -101,7 +101,7 @@ func initializeTlsTransport(uploaderConfig config.UploaderConfig, skipVerify boo
 	}
 }
 
-func initializeServer(logger lager.Logger, uploaderConfig config.UploaderConfig, tlsServer bool) ifrit.Runner {
+func initializeServer(logger lager.Logger, uploaderConfig config.UploaderConfig) ifrit.Runner {
 	uploader := ccclient.NewUploader(logger, &http.Client{Transport: initializeTlsTransport(uploaderConfig, false)})
 
 	// To maintain backwards compatibility with hairpin polling URLs, skip SSL verification for now
@@ -113,26 +113,22 @@ func initializeServer(logger lager.Logger, uploaderConfig config.UploaderConfig,
 		os.Exit(1)
 	}
 
-	if tlsServer {
-		tlsConfig, err := tlsconfig.Build(
-			tlsconfig.WithIdentityFromFile(uploaderConfig.MutualTLS.ServerCert, uploaderConfig.MutualTLS.ServerKey),
-		).Server(tlsconfig.WithClientAuthenticationFromFile(uploaderConfig.MutualTLS.CACert))
+	tlsConfig, err := tlsconfig.Build(
+		tlsconfig.WithIdentityFromFile(uploaderConfig.MutualTLS.ServerCert, uploaderConfig.MutualTLS.ServerKey),
+	).Server(tlsconfig.WithClientAuthenticationFromFile(uploaderConfig.MutualTLS.CACert))
 
-		if err != nil {
-			logger.Error("new-tls-config-failed", err)
-			os.Exit(1)
-		}
-
-		tlsConfig.MinVersion = tls.VersionTLS12
-		tlsConfig.CipherSuites = []uint16{
-			tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-		}
-
-		return http_server.NewTLSServer(uploaderConfig.MutualTLS.ListenAddress, ccUploaderHandler, tlsConfig)
+	if err != nil {
+		logger.Error("new-tls-config-failed", err)
+		os.Exit(1)
 	}
 
-	return http_server.New(uploaderConfig.ListenAddress, ccUploaderHandler)
+	tlsConfig.MinVersion = tls.VersionTLS12
+	tlsConfig.CipherSuites = []uint16{
+		tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+		tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+	}
+
+	return http_server.NewTLSServer(uploaderConfig.MutualTLS.ListenAddress, ccUploaderHandler, tlsConfig)
 }
 
 func waitForDrainingToFinish() <-chan struct{} {
@@ -146,16 +142,9 @@ func waitForDrainingToFinish() <-chan struct{} {
 
 func configureServers(logger lager.Logger, uploaderConfig config.UploaderConfig, reconfigurableSink *lager.ReconfigurableSink) ifrit.Process {
 
-	var nonTLSRunner ifrit.Runner
-	tlsRunner := initializeServer(logger, uploaderConfig, true)
+	tlsRunner := initializeServer(logger, uploaderConfig)
 	members := grouper.Members{
 		{Name: "cc-uploader-tls", Runner: tlsRunner},
-	}
-	if !uploaderConfig.DisableNonTLS {
-		nonTLSRunner = initializeServer(logger, uploaderConfig, false)
-		members = append(grouper.Members{
-			{Name: "cc-uploader", Runner: nonTLSRunner},
-		}, members...)
 	}
 	if uploaderConfig.DebugServerConfig.DebugAddress != "" {
 		members = append(grouper.Members{
@@ -194,7 +183,7 @@ func main() {
 	case s := <-shutdownSignal:
 		logger.Info("shutdown-signal-received", lager.Data{"signal": s})
 
-		// Stop accepting new connections on both runners (TLS & non-TLS), Ifrit will close the listeners
+		// Stop accepting new connections, Ifrit will close the listeners
 		monitor.Signal(os.Interrupt)
 
 		// Create channel to signal when uploads (including polling) are done

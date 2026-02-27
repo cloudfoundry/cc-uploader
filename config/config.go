@@ -43,9 +43,7 @@ type MutualTLS struct {
 }
 
 type UploaderConfig struct {
-	DisableNonTLS        bool                          `json:"disable_non_tls"`
 	DropsondePort        int                           `json:"dropsonde_port"`
-	ListenAddress        string                        `json:"listen_addr"`
 	CCJobPollingInterval Duration                      `json:"job_polling_interval"`
 	LagerConfig          lagerflags.LagerConfig        `json:"lager_config"`
 	DebugServerConfig    debugserver.DebugServerConfig `json:"debug_server_config"`
@@ -59,7 +57,6 @@ func DefaultUploaderConfig() UploaderConfig {
 	return UploaderConfig{
 		DropsondePort:        3457,
 		LagerConfig:          lagerflags.DefaultLagerConfig(),
-		ListenAddress:        "0.0.0.0:9090",
 		CCJobPollingInterval: Duration(1 * time.Second),
 	}
 }
