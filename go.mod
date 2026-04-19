@@ -5,7 +5,7 @@ go 1.25.0
 require (
 	code.cloudfoundry.org/cfhttp/v2 v2.73.0
 	code.cloudfoundry.org/debugserver v0.92.0
-	code.cloudfoundry.org/lager/v3 v3.65.0
+	code.cloudfoundry.org/lager/v3 v3.66.0
 	code.cloudfoundry.org/runtimeschema v0.0.0-20240514235758-31be7684c5bf
 	code.cloudfoundry.org/tlsconfig v0.50.0
 	github.com/cloudfoundry/dropsonde v1.1.0
