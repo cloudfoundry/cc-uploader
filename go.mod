@@ -4,7 +4,7 @@ go 1.25.0
 
 require (
 	code.cloudfoundry.org/cfhttp/v2 v2.75.0
-	code.cloudfoundry.org/debugserver v0.94.0
+	code.cloudfoundry.org/debugserver v0.95.0
 	code.cloudfoundry.org/lager/v3 v3.67.0
 	code.cloudfoundry.org/runtimeschema v0.0.0-20240514235758-31be7684c5bf
 	code.cloudfoundry.org/tlsconfig v0.52.0
@@ -17,7 +17,7 @@ require (
 
 require (
 	code.cloudfoundry.org/bbs v0.0.0-20240418184526-a7ed0dccd9f7 // indirect
-	github.com/Masterminds/semver/v3 v3.4.0 // indirect
+	github.com/Masterminds/semver/v3 v3.5.0 // indirect
 	github.com/bmizerany/pat v0.0.0-20210406213842-e4b6760bdd6f // indirect
 	github.com/cloudfoundry/sonde-go v0.0.0-20240515174134-adba8bce1248 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
