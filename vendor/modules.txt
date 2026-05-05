@@ -3,7 +3,7 @@
 code.cloudfoundry.org/bbs/encryption
 code.cloudfoundry.org/bbs/format
 code.cloudfoundry.org/bbs/models
-# code.cloudfoundry.org/cfhttp/v2 v2.75.0
+# code.cloudfoundry.org/cfhttp/v2 v2.76.0
 ## explicit; go 1.25.0
 code.cloudfoundry.org/cfhttp/v2
 # code.cloudfoundry.org/debugserver v0.94.0
@@ -22,7 +22,7 @@ code.cloudfoundry.org/runtimeschema/cc_messages
 # code.cloudfoundry.org/tlsconfig v0.52.0
 ## explicit; go 1.25.0
 code.cloudfoundry.org/tlsconfig
-# github.com/Masterminds/semver/v3 v3.4.0
+# github.com/Masterminds/semver/v3 v3.5.0
 ## explicit; go 1.21
 github.com/Masterminds/semver/v3
 # github.com/bmizerany/pat v0.0.0-20210406213842-e4b6760bdd6f
