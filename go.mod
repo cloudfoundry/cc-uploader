@@ -1,13 +1,13 @@
 module code.cloudfoundry.org/cc-uploader
 
-go 1.25.0
+go 1.25.1
 
 require (
 	code.cloudfoundry.org/cfhttp/v2 v2.76.0
 	code.cloudfoundry.org/debugserver v0.95.0
 	code.cloudfoundry.org/lager/v3 v3.69.0
 	code.cloudfoundry.org/runtimeschema v0.0.0-20240514235758-31be7684c5bf
-	code.cloudfoundry.org/tlsconfig v0.53.0
+	code.cloudfoundry.org/tlsconfig v0.54.0
 	github.com/cloudfoundry/dropsonde v1.1.0
 	github.com/onsi/ginkgo/v2 v2.28.3
 	github.com/onsi/gomega v1.40.0
