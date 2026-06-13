@@ -1,13 +1,13 @@
 module code.cloudfoundry.org/cc-uploader
 
-go 1.25.1
+go 1.25.8
 
 require (
 	code.cloudfoundry.org/cfhttp/v2 v2.80.0
 	code.cloudfoundry.org/debugserver v0.100.0
 	code.cloudfoundry.org/lager/v3 v3.72.0
 	code.cloudfoundry.org/runtimeschema v0.0.0-20240514235758-31be7684c5bf
-	code.cloudfoundry.org/tlsconfig v0.58.0
+	code.cloudfoundry.org/tlsconfig v0.59.0
 	github.com/cloudfoundry/dropsonde v1.1.0
 	github.com/onsi/ginkgo/v2 v2.29.0
 	github.com/onsi/gomega v1.41.0
@@ -34,7 +34,7 @@ require (
 	golang.org/x/mod v0.36.0 // indirect
 	golang.org/x/net v0.55.0 // indirect
 	golang.org/x/sync v0.20.0 // indirect
-	golang.org/x/sys v0.45.0 // indirect
+	golang.org/x/sys v0.46.0 // indirect
 	golang.org/x/text v0.37.0 // indirect
 	golang.org/x/tools v0.45.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240509183442-62759503f434 // indirect
