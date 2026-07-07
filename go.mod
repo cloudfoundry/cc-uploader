@@ -3,7 +3,7 @@ module code.cloudfoundry.org/cc-uploader
 go 1.25.8
 
 require (
-	code.cloudfoundry.org/cfhttp/v2 v2.84.0
+	code.cloudfoundry.org/cfhttp/v2 v2.85.0
 	code.cloudfoundry.org/debugserver v0.104.0
 	code.cloudfoundry.org/lager/v3 v3.76.0
 	code.cloudfoundry.org/runtimeschema v0.0.0-20240514235758-31be7684c5bf
@@ -35,7 +35,7 @@ require (
 	golang.org/x/net v0.56.0 // indirect
 	golang.org/x/sync v0.21.0 // indirect
 	golang.org/x/sys v0.46.0 // indirect
-	golang.org/x/text v0.38.0 // indirect
+	golang.org/x/text v0.39.0 // indirect
 	golang.org/x/tools v0.47.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240509183442-62759503f434 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
