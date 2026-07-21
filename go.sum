@@ -598,8 +598,8 @@ code.cloudfoundry.org/cfhttp/v2 v2.86.0 h1:8LTtnRQv8pvcifDangX5Kt4Af9HKrqtce3ji5
 code.cloudfoundry.org/cfhttp/v2 v2.86.0/go.mod h1:do0XDEt9gm5+XkwkQmgvu9kzpxTZX2x63NHe23ro0y0=
 code.cloudfoundry.org/clock v1.0.0 h1:kFXWQM4bxYvdBw2X8BbBeXwQNgfoWv1vqAk2ZZyBN2o=
 code.cloudfoundry.org/clock v1.0.0/go.mod h1:QD9Lzhd/ux6eNQVUDVRJX/RKTigpewimNYBi7ivZKY8=
-code.cloudfoundry.org/debugserver v0.106.0 h1:gHnlbrdYUaKU1Ja+GZLh/z02swvCLIiCfWGCaK1G4BI=
-code.cloudfoundry.org/debugserver v0.106.0/go.mod h1:3PL70LI5Nrb9ciERbw96YDrPZzJ28ITEJvipcO5z3ig=
+code.cloudfoundry.org/debugserver v0.107.0 h1:JLZScnPlBum+kVlRtz0yBlRAmupGnCs5D/NGVRBs4Kg=
+code.cloudfoundry.org/debugserver v0.107.0/go.mod h1:Q81YrrsTRahfhWgma6wvvo00MKpVQLSHr4f+FbeOsvw=
 code.cloudfoundry.org/lager v2.0.0+incompatible h1:WZwDKDB2PLd/oL+USK4b4aEjUymIej9My2nUQ9oWEwQ=
 code.cloudfoundry.org/lager v2.0.0+incompatible/go.mod h1:O2sS7gKP3HM2iemG+EnwvyNQK7pTSC6Foi4QiMp9sSk=
 code.cloudfoundry.org/lager/v3 v3.78.0 h1:99UJanQimgW6+PLJXqeJy/O5phCab//wmpjnmH3cAcQ=
@@ -710,8 +710,8 @@ github.com/go-latex/latex v0.0.0-20210118124228-b3d85cf34e07/go.mod h1:CO1AlKB2C
 github.com/go-latex/latex v0.0.0-20210823091927-c0d11ff05a81/go.mod h1:SX0U8uGpxhq9o2S/CELCSUxEWWAuoCUcVCQWv7G2OCk=
 github.com/go-logr/logr v1.2.3/go.mod h1:jdQByPbusPIv2/zmleS9BjJVeZ6kBagPoEUsqbVz/1A=
 github.com/go-logr/logr v1.2.4/go.mod h1:jdQByPbusPIv2/zmleS9BjJVeZ6kBagPoEUsqbVz/1A=
-github.com/go-logr/logr v1.4.3 h1:CjnDlHq8ikf6E492q6eKboGOC0T8CDaOvkHCIg8idEI=
-github.com/go-logr/logr v1.4.3/go.mod h1:9T104GzyrTigFIr8wt5mBrctHMim0Nb2HLGrmQ40KvY=
+github.com/go-logr/logr v1.4.4 h1:tG4xh9yMsRCAiodLVTxyrkzSZ9+o0L1Kg/+cPVcbP/8=
+github.com/go-logr/logr v1.4.4/go.mod h1:9T104GzyrTigFIr8wt5mBrctHMim0Nb2HLGrmQ40KvY=
 github.com/go-pdf/fpdf v0.5.0/go.mod h1:HzcnA+A23uwogo0tp9yU+l3V+KXhiESpt1PMayhOh5M=
 github.com/go-pdf/fpdf v0.6.0/go.mod h1:HzcnA+A23uwogo0tp9yU+l3V+KXhiESpt1PMayhOh5M=
 github.com/go-sql-driver/mysql v1.7.0 h1:ueSltNNllEqE3qcWBTD0iQd3IpL/6U+mJxLkazJ7YPc=
