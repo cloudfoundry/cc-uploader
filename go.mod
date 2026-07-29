@@ -3,7 +3,7 @@ module code.cloudfoundry.org/cc-uploader
 go 1.25.8
 
 require (
-	code.cloudfoundry.org/cfhttp/v2 v2.87.0
+	code.cloudfoundry.org/cfhttp/v2 v2.88.0
 	code.cloudfoundry.org/debugserver v0.107.0
 	code.cloudfoundry.org/lager/v3 v3.79.0
 	code.cloudfoundry.org/runtimeschema v0.0.0-20240514235758-31be7684c5bf
@@ -30,7 +30,7 @@ require (
 	github.com/jackc/puddle/v2 v2.2.1 // indirect
 	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d // indirect
 	github.com/openzipkin/zipkin-go v0.4.3 // indirect
-	go.yaml.in/yaml/v3 v3.0.4 // indirect
+	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/mod v0.38.0 // indirect
 	golang.org/x/net v0.57.0 // indirect
 	golang.org/x/sync v0.22.0 // indirect
