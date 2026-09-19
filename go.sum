@@ -4,8 +4,8 @@ code.cloudfoundry.org/cfhttp/v2 v2.95.0 h1:lIadLnwpEJces15YfIvIxGe/kwLfXIdCSP15O
 code.cloudfoundry.org/cfhttp/v2 v2.95.0/go.mod h1:E7m7LQcaPm4j0b3bWTv5gemXgT60jGwD6SYoPBPy9MU=
 code.cloudfoundry.org/clock v1.0.0 h1:kFXWQM4bxYvdBw2X8BbBeXwQNgfoWv1vqAk2ZZyBN2o=
 code.cloudfoundry.org/clock v1.0.0/go.mod h1:QD9Lzhd/ux6eNQVUDVRJX/RKTigpewimNYBi7ivZKY8=
-code.cloudfoundry.org/debugserver v0.114.0 h1:kYI5KzCqGJYdll2GaEptAUKs3lwL+eK9FEwx96jOiOg=
-code.cloudfoundry.org/debugserver v0.114.0/go.mod h1:afeA4l1ZeqhJTKydg/h+23CtAjGLbRGfuEAaHc8SCWk=
+code.cloudfoundry.org/debugserver v0.115.0 h1:O8d5PcmxaHbFv5xLPef3zLX5cWCaIWkZT3JJKw+gfY8=
+code.cloudfoundry.org/debugserver v0.115.0/go.mod h1:qj/fULS0PGHWUlwOn2lWbLmMpOfY13aCRGT5+H5dnjY=
 code.cloudfoundry.org/lager v2.0.0+incompatible h1:WZwDKDB2PLd/oL+USK4b4aEjUymIej9My2nUQ9oWEwQ=
 code.cloudfoundry.org/lager v2.0.0+incompatible/go.mod h1:O2sS7gKP3HM2iemG+EnwvyNQK7pTSC6Foi4QiMp9sSk=
 code.cloudfoundry.org/lager/v3 v3.87.0 h1:e6zDuyV8/jsMhHaSCtFecWh65dSLNeNVlydwAznI9D0=
@@ -100,8 +100,8 @@ github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UV
 github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/stretchr/testify v1.8.4 h1:CcVxjf3Q8PM0mHUKJCdn+eZZtm5yQwehR5yeSVQQcUk=
 github.com/stretchr/testify v1.8.4/go.mod h1:sz/lmYIOXD/1dqDmKjjqLyZ2RngseejIcXlSw2iwfAo=
-github.com/tedsuo/ifrit v0.0.0-20260813155221-94822c932811 h1:A4cmZWps1laLIFZa5XyyVU03A3pkYCDdN7vDQfB8RvM=
-github.com/tedsuo/ifrit v0.0.0-20260813155221-94822c932811/go.mod h1:U4gRO4lEOLwO3h4CO9BE6c28VB74a5R+HjCwG7o1Mw0=
+github.com/tedsuo/ifrit v0.0.0-20260908181113-dd353a7daa27 h1:gKDGsw+NqSByQPkCbwKfTiTNo+d3tsdjQjKUYVG3jAY=
+github.com/tedsuo/ifrit v0.0.0-20260908181113-dd353a7daa27/go.mod h1:U4gRO4lEOLwO3h4CO9BE6c28VB74a5R+HjCwG7o1Mw0=
 github.com/tedsuo/rata v1.0.0 h1:Sf9aZrYy6ElSTncjnGkyC2yuVvz5YJetBIUKJ4CmeKE=
 github.com/tedsuo/rata v1.0.0/go.mod h1:X47ELzhOoLbfFIY0Cql9P6yo3Cdwf2CMX3FVZxRzJPc=
 github.com/tidwall/gjson v1.18.0 h1:FIDeeyB800efLX89e5a8Y0BNH+LOngJyGrIWxG2FKQY=
