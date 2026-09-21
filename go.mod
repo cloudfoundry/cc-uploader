@@ -9,7 +9,7 @@ require (
 	code.cloudfoundry.org/runtimeschema v0.0.0-20240514235758-31be7684c5bf
 	code.cloudfoundry.org/tlsconfig v0.67.0
 	github.com/cloudfoundry/dropsonde v1.1.0
-	github.com/onsi/ginkgo/v2 v2.32.2
+	github.com/onsi/ginkgo/v2 v2.33.0
 	github.com/onsi/gomega v1.43.0
 	github.com/tedsuo/ifrit v0.0.0-20260908181113-dd353a7daa27
 	github.com/tedsuo/rata v1.0.0
