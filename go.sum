@@ -1,7 +1,7 @@
 code.cloudfoundry.org/bbs v0.0.0-20240418184526-a7ed0dccd9f7 h1:vmwkTM1T0Hx6V4LgOGrU6dgkwNNJg5yf8Wyk1I6ptpg=
 code.cloudfoundry.org/bbs v0.0.0-20240418184526-a7ed0dccd9f7/go.mod h1:XKlGVVXFi5EcHHMPzw3xgONK9PeEZuUbIC43XNwxD10=
-code.cloudfoundry.org/cfhttp/v2 v2.99.0 h1:A2NuxCLW2MuT8Hsiiky3KE6PDvQZ8rkzPimcIs2/vCU=
-code.cloudfoundry.org/cfhttp/v2 v2.99.0/go.mod h1:xJ7XlnKyNnyR0+PGrIKARe0uBTqQK7T4BHMjVHnnb2k=
+code.cloudfoundry.org/cfhttp/v2 v2.100.0 h1:aUa4yzBDZrp4q2ysQHm7gJNkf1Icw91fLsTxmGEDQ6c=
+code.cloudfoundry.org/cfhttp/v2 v2.100.0/go.mod h1:8xC6nEue5UqFbC0Ob7XsmiyyBMPYxs+y3SbnPulI7mI=
 code.cloudfoundry.org/clock v1.0.0 h1:kFXWQM4bxYvdBw2X8BbBeXwQNgfoWv1vqAk2ZZyBN2o=
 code.cloudfoundry.org/clock v1.0.0/go.mod h1:QD9Lzhd/ux6eNQVUDVRJX/RKTigpewimNYBi7ivZKY8=
 code.cloudfoundry.org/debugserver v0.119.0 h1:70Z+UyRTpDNCbGAAXf2O/vSBJjsITEgcDkAn0KQW62g=
