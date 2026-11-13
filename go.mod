@@ -7,7 +7,7 @@ require (
 	code.cloudfoundry.org/debugserver v0.122.0
 	code.cloudfoundry.org/lager/v3 v3.94.0
 	code.cloudfoundry.org/runtimeschema v0.0.0-20240514235758-31be7684c5bf
-	code.cloudfoundry.org/tlsconfig v0.71.0
+	code.cloudfoundry.org/tlsconfig v0.72.0
 	github.com/cloudfoundry/dropsonde v1.1.0
 	github.com/onsi/ginkgo/v2 v2.34.0
 	github.com/onsi/gomega v1.44.0
@@ -35,7 +35,7 @@ require (
 	golang.org/x/mod v0.42.0 // indirect
 	golang.org/x/net v0.62.0 // indirect
 	golang.org/x/sync v0.24.0 // indirect
-	golang.org/x/sys v0.49.0 // indirect
+	golang.org/x/sys v0.50.0 // indirect
 	golang.org/x/text v0.43.0 // indirect
 	golang.org/x/tools v0.52.0 // indirect
 	google.golang.org/protobuf v1.36.12 // indirect
