@@ -3,7 +3,7 @@ module code.cloudfoundry.org/cc-uploader
 go 1.27.3
 
 require (
-	code.cloudfoundry.org/cfhttp/v2 v2.103.0
+	code.cloudfoundry.org/cfhttp/v2 v2.104.0
 	code.cloudfoundry.org/debugserver v0.123.0
 	code.cloudfoundry.org/lager/v3 v3.95.0
 	code.cloudfoundry.org/runtimeschema v0.0.0-20240514235758-31be7684c5bf
@@ -24,7 +24,7 @@ require (
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
-	github.com/google/pprof v0.0.0-20261105003125-4bf881d7fb0b // indirect
+	github.com/google/pprof v0.0.0-20261111200114-fac431ef4d26 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20231201235250-de7065d80cb9 // indirect
 	github.com/jackc/puddle/v2 v2.2.1 // indirect
